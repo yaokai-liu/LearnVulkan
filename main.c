@@ -24,7 +24,7 @@
 
 uint8_t *loadBinFile(const char *filepath, uint32_t *real_size, const Allocator *allocator);
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -35,13 +35,15 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 const char* INSTANCE_REQUIRED_EXTENSION_NAMES[] = {
     /** @{ glfw required extensions */
     VK_KHR_SURFACE_EXTENSION_NAME,
-    #if defined(WIN64)
+#if defined(WIN64)
+    #define XGL_SURFACE_WIN32 1
     "VK_KHR_win32_surface",
-    #elif defined(linux)
+#elif defined(linux)
+#define XGL_SURFACE_WAYLAND 1
     "VK_KHR_wayland_surface",
-    #else
-      #error "Unknown os platform, unable to set window surface."
-    #endif
+#else
+#error "Unknown os platform, unable to set window surface."
+#endif
     /** @} */
     VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
     VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -59,8 +61,8 @@ const char* REQUIRED_DEVICE_EXTENSION_NAMES[] = {
 const char* REQUIRED_DEVICE_LAYER_NAMES[] = {
 };
 
-#define vulkanTerminal() do { goto __failed_to_create_logic_device; } while (false)
-#define surfaceTerminal() do { goto __failed_to_create_swapchain;  } while (false)
+static bool framebufferResized = false;
+
 int main(int argc, char * argv[]) {
   VkResult result = {};
 
@@ -73,6 +75,9 @@ int main(int argc, char * argv[]) {
       fprintf(stderr, "Failed to create GLFW window.\n");
      goto __failed_to_create_glfw_window;
   }
+
+  glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+
   glfwMakeContextCurrent(window);
 
   /* show all extensions required */ {
@@ -312,14 +317,17 @@ __required_device_layer_verified:
   VkExtent2D surfaceExtent = {};
   VkSurfaceTransformFlagBitsKHR surfaceTransform = {};
   VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  #if defined(XGL_SURFACE_WIN32)
   VkSurfaceFormatKHR surfaceFormat = { .format = VK_FORMAT_R8G8B8A8_SRGB, .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR };
+  #elif defined(XGL_SURFACE_WAYLAND)
+  VkSurfaceFormatKHR surfaceFormat = { .format = VK_FORMAT_B8G8R8A8_SRGB, .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR };
+  #endif
+__get_surface_capabilities:
   /* get capabilities of surface */{
     uint32_t presentModeCount = 0;
     uint32_t surfaceFormatCount = 0;
     VkPresentModeKHR *presentModes = nullptr;
     VkSurfaceFormatKHR *surfaceFormats = nullptr;
-    VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, nullptr);
     surfaceFormats = allocator->calloc(surfaceFormatCount, sizeof(VkSurfaceFormatKHR));
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, surfaceFormats);
@@ -349,16 +357,22 @@ __required_device_layer_verified:
     allocator->free(presentModes);
     allocator->free(surfaceFormats);
     goto __failed_to_get_capabilities_of_surface;
-    __surface_format_verified:
+__surface_format_verified:
     rt_message("Chosen surface format: %s", "R8G8B8A8_SRGB(ColorSpace: SRGB_NONLINEAR)");
     int width = 0, height = 0;
+    VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
     glfwGetFramebufferSize(window, &width, &height);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
     surfaceExtent.width = maxmin((uint32_t) width, surfaceCapabilities.maxImageExtent.width, surfaceCapabilities.minImageExtent.width);
     surfaceExtent.height = maxmin((uint32_t) height, surfaceCapabilities.maxImageExtent.height, surfaceCapabilities.minImageExtent.height);
     swapImageCount = maxmin(surfaceCapabilities.minImageCount + 1, surfaceCapabilities.minImageCount, surfaceCapabilities.maxImageCount);
     surfaceTransform = surfaceCapabilities.currentTransform;
     allocator->free(presentModes);
     allocator->free(surfaceFormats);
+    if (framebufferResized) {
+      framebufferResized = false;
+      goto __recreate_swapchain;
+    }
   }
 
   VkDevice logicDevice = VK_NULL_HANDLE;
@@ -418,75 +432,6 @@ __required_device_layer_verified:
     rt_message("Graphics queue selected");
     vkGetDeviceQueue(logicDevice, queueFamilyIndices[QUEUE_FAMILY_PRESENT_INDEX], 0, &presentQueue);
     rt_message("Present queue selected");
-  }
-
-  VkSwapchainCreateInfoKHR swapchainCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .pNext = nullptr,
-      .flags = 0,
-      .surface = surface,
-      .minImageCount = swapImageCount,
-      .imageFormat = surfaceFormat.format,
-      .imageColorSpace = surfaceFormat.colorSpace,
-      .imageExtent = surfaceExtent,
-      .imageArrayLayers = 1,
-      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      .imageSharingMode = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
-      .queueFamilyIndexCount = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? 0 : queueFamilyCount,
-      .pQueueFamilyIndices = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? nullptr : queueFamilyIndices,
-      .preTransform = surfaceTransform,
-      .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-      .presentMode = presentMode,
-      .clipped = VK_TRUE,
-      .oldSwapchain = VK_NULL_HANDLE,
-  };
-  VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-  result = vkCreateSwapchainKHR(logicDevice, &swapchainCreateInfo, nullptr, &swapchain);
-  if (result != VK_SUCCESS) {
-    rt_error("Failed to create swapchain: %u", result);
-    goto __failed_to_create_swapchain;
-  }
-  VkImage *swapImages = nullptr;
-  VkImageView *swapImageViews = nullptr;
-  /* create images and image views */ {
-    vkGetSwapchainImagesKHR(logicDevice, swapchain, &swapImageCount, nullptr);
-    swapImages = allocator->calloc(swapImageCount, sizeof(VkImage));
-    vkGetSwapchainImagesKHR(logicDevice, swapchain, &swapImageCount, swapImages);
-    swapImageViews = allocator->calloc(swapImageCount, sizeof(VkImageView));
-    VkImageViewCreateInfo imageViewCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .image = nullptr,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = surfaceFormat.format,
-        .components = {
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-            VK_COMPONENT_SWIZZLE_IDENTITY,
-        },
-        .subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-        },
-    };
-    for (uint32_t i = 0; i < swapImageCount; i++) {
-      imageViewCreateInfo.image = swapImages[i];
-      result = vkCreateImageView(logicDevice, &imageViewCreateInfo, nullptr, &swapImageViews[i]);
-      if (result != VK_SUCCESS) {
-        rt_error("Failed to create image view: %u", result);
-        for (uint32_t j = 0; j < i; j++) {
-          vkDestroyImageView(logicDevice, swapImageViews[j], nullptr);
-        }
-        allocator->free(swapImages);
-        allocator->free(swapImageViews);
-        goto __failed_to_create_image_views;
-      }
-    }
   }
 
   VkViewport viewport = {
@@ -618,8 +563,8 @@ __required_device_layer_verified:
     VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo = {};
     VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {
         .blendEnable = VK_FALSE,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
         .colorBlendOp = VK_BLEND_OP_ADD,
         .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
         .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -630,8 +575,13 @@ __required_device_layer_verified:
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
+        #if defined(XGL_SURFACE_WIN32)
         .logicOpEnable = VK_TRUE,
         .logicOp = VK_LOGIC_OP_COPY,
+        #elif defined(XGL_SURFACE_WAYLAND)
+        .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_CLEAR,
+        #endif
         .attachmentCount = 1,
         .pAttachments = &pipelineColorBlendAttachmentState,
         .blendConstants = {1.0f, 1.0f, 1.0f, 1.0f},
@@ -729,32 +679,6 @@ __required_device_layer_verified:
     }
   }
 
-  VkFramebuffer *framebuffers = allocator->calloc(swapImageCount, sizeof(VkFramebuffer));
-  /* create framebuffers */ {
-    for (uint32_t i = 0; i < swapImageCount; i++) {
-      VkFramebufferCreateInfo framebufferCreateInfo = {
-          .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-          .pNext = nullptr,
-          .flags = 0,
-          .renderPass = pipelineRenderPass,
-          .attachmentCount = 1,
-          .pAttachments = &swapImageViews[i],
-          .width = surfaceExtent.width,
-          .height = surfaceExtent.height,
-          .layers = 1,
-      };
-      result = vkCreateFramebuffer(logicDevice, &framebufferCreateInfo, nullptr, &framebuffers[i]);
-      if (result != VK_SUCCESS) {
-        rt_error("Failed to create framebuffers");
-        for (uint32_t j = 0; j < i; j++) {
-          vkDestroyFramebuffer(logicDevice, framebuffers[j], nullptr);
-        }
-        allocator->free(framebuffers);
-        goto __failed_to_create_framebuffers;
-      }
-    }
-  }
-
   VkCommandPool commandPool = VK_NULL_HANDLE;
   VkCommandBuffer commandBuffer[MAX_FRAME_ON_DRAW] = { VK_NULL_HANDLE };
   /* create command pool and command buffer */ {
@@ -815,15 +739,122 @@ __required_device_layer_verified:
   }
 
   uint32_t currentFrameIndex = 0;
+  VkImageView *swapImageViews = nullptr;
+  VkFramebuffer *framebuffers = nullptr;
+  VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+  VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE;
+__create_swapchain:
+  /* create swapchain, images, image views, and framebuffers */ {
+    VkSwapchainCreateInfoKHR swapchainCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .surface = surface,
+        .minImageCount = swapImageCount,
+        .imageFormat = surfaceFormat.format,
+        .imageColorSpace = surfaceFormat.colorSpace,
+        .imageExtent = surfaceExtent,
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageSharingMode = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? VK_SHARING_MODE_EXCLUSIVE : VK_SHARING_MODE_CONCURRENT,
+        .queueFamilyIndexCount = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? 0 : queueFamilyCount,
+        .pQueueFamilyIndices = (queueFamilyIndices[0] == queueFamilyIndices[1]) ? nullptr : queueFamilyIndices,
+        .preTransform = surfaceTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = oldSwapchain,
+    };
+    result = vkCreateSwapchainKHR(logicDevice, &swapchainCreateInfo, nullptr, &swapchain);
+    if (result != VK_SUCCESS) {
+      rt_error("Failed to create swapchain: %u", result);
+      goto __failed_to_create_swapchain;
+    }
+    vkGetSwapchainImagesKHR(logicDevice, swapchain, &swapImageCount, nullptr);
+    VkImage *swapImages = allocator->calloc(swapImageCount, sizeof(VkImage));
+    vkGetSwapchainImagesKHR(logicDevice, swapchain, &swapImageCount, swapImages);
+    swapImageViews = allocator->calloc(swapImageCount, sizeof(VkImageView));
+    VkImageViewCreateInfo imageViewCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .image = nullptr,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = surfaceFormat.format,
+        .components = {
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+        },
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    };
+    for (uint32_t i = 0; i < swapImageCount; i++) {
+      imageViewCreateInfo.image = swapImages[i];
+      result = vkCreateImageView(logicDevice, &imageViewCreateInfo, nullptr, &swapImageViews[i]);
+      if (result != VK_SUCCESS) {
+        rt_error("Failed to create image view: %u", result);
+        for (uint32_t j = 0; j < i; j++) {
+          vkDestroyImageView(logicDevice, swapImageViews[j], nullptr);
+        }
+        allocator->free(swapImages);
+        allocator->free(swapImageViews);
+        goto __failed_to_create_image_views;
+      }
+    }
+    framebuffers = allocator->calloc(swapImageCount, sizeof(VkFramebuffer));
+    for (uint32_t i = 0; i < swapImageCount; i++) {
+      VkFramebufferCreateInfo framebufferCreateInfo = {
+          .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+          .pNext = nullptr,
+          .flags = 0,
+          .renderPass = pipelineRenderPass,
+          .attachmentCount = 1,
+          .pAttachments = &swapImageViews[i],
+          .width = surfaceExtent.width,
+          .height = surfaceExtent.height,
+          .layers = 1,
+      };
+      result = vkCreateFramebuffer(logicDevice, &framebufferCreateInfo, nullptr, &framebuffers[i]);
+      if (result != VK_SUCCESS) {
+        rt_error("Failed to create framebuffers");
+        for (uint32_t j = 0; j < i; j++) {
+          vkDestroyFramebuffer(logicDevice, framebuffers[j], nullptr);
+        }
+        allocator->free(framebuffers);
+        goto __failed_to_create_framebuffers;
+      }
+    }
+    allocator->free(swapImages);
+  }
+
   while(!glfwWindowShouldClose(window)) {
     processInput(window);
     glfwPollEvents();
     /* draw */ {
       vkWaitForFences(logicDevice, 1, &presentCompletedFence[currentFrameIndex], VK_TRUE, UINT32_MAX);
-      vkResetFences(logicDevice, 1, &presentCompletedFence[currentFrameIndex]);
 
+      if (framebufferResized) {
+        goto __get_surface_capabilities;
+      }
       uint32_t imageIndex = 0;
-      vkAcquireNextImageKHR(logicDevice, swapchain, UINT32_MAX, imageAvailableSemaphore[currentFrameIndex], VK_NULL_HANDLE, &imageIndex);
+      result = vkAcquireNextImageKHR(logicDevice, swapchain, UINT32_MAX, imageAvailableSemaphore[currentFrameIndex], VK_NULL_HANDLE, &imageIndex);
+      if (result != VK_SUCCESS) {
+        switch (result) {
+          case VK_ERROR_OUT_OF_DATE_KHR: {
+            goto __recreate_swapchain;
+          }
+          default:{ glfwSetWindowShouldClose(window, GLFW_TRUE); }
+        }
+      }
+
+      vkResetFences(logicDevice, 1, &presentCompletedFence[currentFrameIndex]);
 
       vkResetCommandBuffer(commandBuffer[currentFrameIndex], 0);
       VkCommandBufferBeginInfo commandBufferBeginInfo = {
@@ -837,7 +868,7 @@ __required_device_layer_verified:
         goto __failed_to_render;
       }
       /* command buffer record */ {
-        VkClearValue clearValue = {.color = {0.0f, 0.0f, 0.0f, 1.0f}};
+        VkClearValue clearValue = {.color = {0.02f, 0.02f, 0.02f, 1.0f}};
         VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
@@ -888,7 +919,17 @@ __required_device_layer_verified:
           .pImageIndices = &imageIndex,
           .pResults = nullptr,
       };
-      vkQueuePresentKHR(presentQueue, &presentInfo);
+      result = vkQueuePresentKHR(presentQueue, &presentInfo);
+      if (result != VK_SUCCESS) {
+        switch (result) {
+          case VK_SUBOPTIMAL_KHR:
+          case VK_ERROR_OUT_OF_DATE_KHR: {
+            goto __recreate_swapchain;
+          }
+          default:{ glfwSetWindowShouldClose(window, GLFW_TRUE); }
+        }
+      }
+
       currentFrameIndex = (currentFrameIndex + 1) % MAX_FRAME_ON_DRAW;
     }
   }
@@ -922,7 +963,6 @@ __failed_to_create_vertex_shader_module:
   for (uint32_t j = 0; j < swapImageCount; j ++) {
     vkDestroyImageView(logicDevice, swapImageViews[j], nullptr);
   }
-  allocator->free(swapImages);
   allocator->free(swapImageViews);
 __failed_to_create_image_views:
   vkDestroySwapchainKHR(logicDevice, swapchain, nullptr);
@@ -940,6 +980,22 @@ __failed_to_create_glfw_window:
   glfwTerminate();
 
   return result;
+
+__recreate_swapchain:
+  vkDeviceWaitIdle(logicDevice);
+  for (uint32_t j = 0; j < swapImageCount; j ++) {
+    vkDestroyFramebuffer(logicDevice, framebuffers[j], nullptr);
+  }
+  for (uint32_t j = 0; j < swapImageCount; j ++) {
+    vkDestroyImageView(logicDevice, swapImageViews[j], nullptr);
+  }
+  vkDestroySwapchainKHR(logicDevice, swapchain, nullptr);
+  goto __create_swapchain;
+}
+
+void framebuffer_resize_callback(GLFWwindow* window, int width, int height) {
+
+  framebufferResized = true;
 }
 
 void processInput(GLFWwindow *window) {
@@ -951,6 +1007,10 @@ uint8_t *loadBinFile(const char *filepath, uint32_t *real_size, const Allocator 
   uint32_t fileSize = 0;
   FILE *file = nullptr;
   file = fopen(filepath, "rb");
+  if (!file) {
+    rt_error("Failed to open binary file '%s'", filepath);
+    return nullptr;
+  }
   fseek(file, 0, SEEK_END);
   fileSize = ftell(file);
   fseek(file, 0, SEEK_SET);
