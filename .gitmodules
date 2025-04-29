@@ -1,0 +1,6 @@
+[submodule "meman"]
+	path = meman
+	url = git@github.com:yaokai-liu/meman.git
+[submodule "glfw"]
+	path = glfw
+	url = https://github.com/glfw/glfw.git
