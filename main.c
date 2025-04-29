@@ -994,7 +994,11 @@ __recreate_swapchain:
 }
 
 void framebuffer_resize_callback(GLFWwindow* window, int width, int height) {
-
+  while (width == 0 || height == 0) {
+    rt_message("minimize window");
+    glfwGetFramebufferSize(window, &width, &height);
+    glfwWaitEvents();
+  }
   framebufferResized = true;
 }
 
