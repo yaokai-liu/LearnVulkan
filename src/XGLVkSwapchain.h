@@ -1,0 +1,50 @@
+/* License
+ *
+ * ${PROJ_DESCRIPTION}
+ * Copyright (C) 2025 Yaokai Liu
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *
+ * Project Name: VulkanDemo
+ * Module Name: src
+ * Filename: XGLVkSwapchain.h
+ * Creator: Yaokai Liu
+ * Create Date: 2025-04-30
+ * Copyright (c) 2025 Yaokai Liu. All rights reserved.
+ **/
+
+#ifndef VULKAN_DEMO_XGL_VK_SWAPCHAIN_H
+#define VULKAN_DEMO_XGL_VK_SWAPCHAIN_H
+
+#include "XGLVulkan.h"
+
+typedef struct XGLVkSwapchain {
+  VkSwapchainKHR handle;
+  VkSwapchainKHR oldHandle;
+  uint32_t swapImageCount;
+  uint32_t currentIndex;
+  const XGLVkDevice *device;
+  const Allocator *allocator;
+  const XGLVkSurface *surface;
+  const XGLVkPipeline *pipeline;
+  VkFramebuffer *framebuffers;
+  VkImageView *swapImageViews;
+} XGLVkSwapchain;
+
+XGLVkSwapchain *
+XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkSurface *surface, const XGLVkPipeline *pipeline, const Allocator *allocator);
+void XGLVkSwapchain_destroy(XGLVkSwapchain *swapchain);
+
+#endif //VULKAN_DEMO_XGL_VK_SWAPCHAIN_H

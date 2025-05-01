@@ -16,6 +16,18 @@ if(NOT EXISTS ${XGL_SHADER_OUTPUT_DIR})
     file(MAKE_DIRECTORY ${XGL_SHADER_OUTPUT_DIR})
 endif ()
 
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    MESSAGE(STATUS "current platform: Linux ")
+    add_compile_definitions("XGL_SURFACE_WAYLAND")
+elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    MESSAGE(STATUS "current platform: Windows")
+    add_compile_definitions("XGL_SURFACE_WIN32")
+elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    MESSAGE(STATUS "current platform: Mac OS X")
+else ()
+    MESSAGE(STATUS "other platform: ${CMAKE_SYSTEM_NAME}")
+endif ()
+
 if(NOT EXISTS ${XGL_DEFAULT_VERT_SHADER})
     message(STATUS "${XGL_DEFAULT_VERT_SHADER} doesn't exist, compile it.")
     execute_process(COMMAND
@@ -46,8 +58,11 @@ add_library(meman STATIC ${MEMAN_SRC})
 
 find_package(Vulkan REQUIRED)
 
+add_compile_definitions(XGL_WM_USING_GLFW)
 add_subdirectory(glfw)
 include_directories(glfw/include)
 
-add_executable(VulkanDemo main.c)
+include_directories(src)
+aux_source_directory(src SRC)
+add_executable(VulkanDemo main.c ${SRC})
 target_link_libraries(VulkanDemo PRIVATE meman glfw Vulkan::Vulkan)

@@ -1,0 +1,38 @@
+/* License
+ *
+ * ${PROJ_DESCRIPTION}
+ * Copyright (C) 2025 Yaokai Liu
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *
+ * Project Name: VulkanDemo
+ * Module Name: src
+ * Filename: runtime-msg.h
+ * Creator: Yaokai Liu
+ * Create Date: 2025-04-29
+ * Copyright (c) 2025 Yaokai Liu. All rights reserved.
+ **/
+
+#ifndef VULKAN_DEMO_RUNTIME_MSG_H
+#define VULKAN_DEMO_RUNTIME_MSG_H
+
+#include <stdio.h>
+
+#define rt_error(fmt, ...)   fprintf(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__)
+#define rt_message(fmt, ...) fprintf(stdout, "[INFO] " fmt "\n", ##__VA_ARGS__)
+#define rt_warning(fmt, ...) fprintf(stderr, "[WARNING] " fmt "\n", ##__VA_ARGS__)
+#define rt_debug(fmt, ...)   fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+
+#endif //VULKAN_DEMO_RUNTIME_MSG_H
