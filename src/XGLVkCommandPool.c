@@ -49,27 +49,36 @@ XGLVkCommandPool *XGLVkCommandPool_new(XGLVkDevice *device, const Allocator *all
     XGLVkCommandPool_destroy(commandPool);
     return nullptr;
   }
-  commandPool->bufferCount = MAX_FRAME_ON_DRAW;
+  commandPool->buffers = Array_new(sizeof(VkCommandBuffer), -1, allocator);
+  return commandPool;
+}
+
+VkCommandBuffer *XGLVkCommandPool_newCommand(XGLVkCommandPool *pool, uint32_t count) {
   VkCommandBufferAllocateInfo bufferInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .pNext = nullptr,
-      .commandPool = commandPool->handle,
+      .commandPool = pool->handle,
       .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = commandPool->bufferCount,
+      .commandBufferCount = count,
   };
-  commandPool->buffers = allocator->calloc(commandPool->bufferCount, sizeof(VkCommandBuffer));
-  result = vkAllocateCommandBuffers(device->handle, &bufferInfo, commandPool->buffers);
+  uint32_t bufferCount = Array_length(pool->buffers);
+  Array_resize(pool->buffers, bufferCount + count, nullptr);
+  VkCommandBuffer *addendBuffers = Array_real_addr(pool->buffers, bufferCount);
+  VkResult result = vkAllocateCommandBuffers(pool->device->handle, &bufferInfo, addendBuffers);
   if (result != VK_SUCCESS) {
     rt_error("Failed to create command buffer");
-    XGLVkCommandPool_destroy(commandPool);
     return nullptr;
   }
-  return commandPool;
+  return addendBuffers;
+}
+
+VkCommandBuffer XGLVkCommandPool_getCommand(XGLVkCommandPool *pool, uint32_t index) {
+  return *(VkCommandBuffer *) Array_real_addr(pool->buffers, index);
 }
 
 void XGLVkCommandPool_destroy(XGLVkCommandPool *commandPool) {
   if (commandPool->buffers) {
-    commandPool->allocator->free(commandPool->buffers);
+    releasePrimeArray(commandPool->buffers);
   }
   if (commandPool->handle != VK_NULL_HANDLE) {
     vkDestroyCommandPool(commandPool->device->handle, commandPool->handle, nullptr);
@@ -78,8 +87,8 @@ void XGLVkCommandPool_destroy(XGLVkCommandPool *commandPool) {
 }
 
 VkResult
-XGLVkCommand_record(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
-                    const XGLVkPipeline *pipeline, const XGLVkRenderInfo *recordInfo) {
+XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
+                         const XGLVkPipeline *pipeline, const XGLVkRecordInfo *recordInfo) {
   vkResetCommandBuffer(command, 0);
   VkCommandBufferBeginInfo commandBufferBeginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -101,8 +110,11 @@ XGLVkCommand_record(VkCommandBuffer command, const XGLVkSurface *surface, const 
   vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
   vkCmdSetViewport(command, 0, 1, &surface->viewport);
   vkCmdSetScissor(command, 0, 1, &surface->scissor);
-  vkCmdDraw(command, 3, 1, 0, 0);
+  return result;
+}
+
+VkResult XGLVkCommand_endRecord(VkCommandBuffer command) {
   vkCmdEndRenderPass(command);
-  result = vkEndCommandBuffer(command);
+  VkResult result = vkEndCommandBuffer(command);
   return result;
 }

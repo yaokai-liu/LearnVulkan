@@ -239,6 +239,43 @@ void XGLVkInstance_enumeratePhysicalDevices(XGLVkInstance *instance) {
   instance->allocator->free(devices);
 }
 
+const XGLVkPhysicalDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance) {
+  uint32_t deviceCount = Array_length(instance->devices);
+  XGLVkPhysicalDevice *const devices = Array_first_real(instance->devices);
+  for (uint32_t i = 0; i < deviceCount; i ++) {
+    rt_message("Detect physical device '%s'", devices[i].properties.deviceName);
+    if (!XGLVkPhysicalDevice_suitable(&devices[i])) {
+      rt_message("Physical device '%s' is not suitable, skip", devices[i].properties.deviceName);
+      continue;
+    }
+    XGLVkPhysicalDevice_enumerate(&devices[i]);
+    VkResult result = XGLVkPhysicalDevice_verifyLayers(&devices[i],
+                                                       REQUIRED_DEVICE_LAYER_NAME_COUNT,
+                                                       REQUIRED_DEVICE_LAYER_NAMES);
+    if (result != VK_SUCCESS) {
+      rt_message("Physical device '%s' not support all requested layers, skip", devices[i].properties.deviceName);
+      continue;
+    }
+    result = XGLVkPhysicalDevice_verifyExtensions(&devices[i],
+                                                  REQUIRED_DEVICE_EXTENSION_NAME_COUNT,
+                                                  REQUIRED_DEVICE_EXTENSION_NAMES);
+    if (result != VK_SUCCESS) {
+      rt_message("Device '%s' not support all requested extensions, skip", devices[i].properties.deviceName);
+      continue;
+    }
+    result = XGLVkPhysicalDevice_detectWindow(&devices[i], window, instance);
+    if (result != VK_SUCCESS) {
+      rt_message("Device '%s' is not suitable for the window, skip", devices[i].properties.deviceName);
+      continue;
+    }
+    rt_message("Picking Physical Device '%s' (driver version: %u)",
+               devices[i].properties.deviceName,
+               devices[i].properties.driverVersion);
+    return &devices[i];
+  }
+  return nullptr;
+}
+
 void XGLVkInstance_destroy(XGLVkInstance *instance) {
   if (instance->enableValidationLayers) {
 //    DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);

@@ -32,8 +32,8 @@
 #include "util-macro.h"
 
 XGLVkPipeline *
-XGLVkPipeline_new(XGLVkDevice *device, XGLVkShaderCreatePack *infoPack, const XGLVkSurface *surface, const Allocator *allocator) {
-  if (!infoPack->count) { return nullptr; }
+XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator) {
+  if (!info->shaderCount) { return nullptr; }
 
   XGLVkPipeline *pipeline = allocator->calloc(1, sizeof(XGLVkPipeline));
   pipeline->allocator = allocator;
@@ -43,10 +43,10 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkShaderCreatePack *infoPack, const XG
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
-      .vertexBindingDescriptionCount = 0,
-      .pVertexBindingDescriptions = nullptr,
-      .vertexAttributeDescriptionCount = 0,
-      .pVertexAttributeDescriptions = nullptr,
+      .vertexBindingDescriptionCount = info->vertBindCount,
+      .pVertexBindingDescriptions = info->vertBindings,
+      .vertexAttributeDescriptionCount = info->vertAttrCount,
+      .pVertexAttributeDescriptions = info->vertAttributes,
   };
   VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -200,8 +200,8 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkShaderCreatePack *infoPack, const XG
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
-      .stageCount = infoPack->count,
-      .pStages = infoPack->infos,
+      .stageCount = info->shaderCount,
+      .pStages = info->shaderStages,
       .pVertexInputState = &pipelineVertexInputStateCreateInfo,
       .pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo,
       .pTessellationState = nullptr,
@@ -225,53 +225,71 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkShaderCreatePack *infoPack, const XG
   return pipeline;
 }
 
-XGLVkShaderCreatePack *composeShaderModules(XGLVkDevice *device, XGLVkShader *shaders, uint32_t shaderCount, const Allocator *allocator) {
-  XGLVkShaderCreatePack *infoPack = allocator->calloc(1, sizeof(XGLVkShaderCreatePack));
-  infoPack->allocator = allocator;
-  infoPack->device = device;
-  infoPack->modules = allocator->calloc(shaderCount, sizeof(VkShaderModule));
-  infoPack->infos = allocator->calloc(shaderCount, sizeof(VkPipelineShaderStageCreateInfo));
-  VkShaderModuleCreateInfo info = {
+VkResult
+composeShaderModules(XGLVkPipelineInfo *info, XGLVkShader *shaders, uint32_t shaderCount) {
+  if (info->device == VK_NULL_HANDLE || !info->allocator) { return ~VK_SUCCESS; }
+  info->shaderModules = info->allocator->calloc(shaderCount, sizeof(VkShaderModule));
+  info->shaderStages = info->allocator->calloc(shaderCount, sizeof(VkPipelineShaderStageCreateInfo));
+  VkShaderModuleCreateInfo createInfo = {
       .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
       .codeSize = 0,
       .pCode = nullptr,
   };
+  VkResult result = 0;
   for (uint32_t i = 0; i < shaderCount; i++) {
-    info.codeSize = shaders[i].size;
-    info.pCode = shaders[i].code;
-    VkResult result = vkCreateShaderModule(device->handle, &info, nullptr, &infoPack->modules[i]);
+    createInfo.codeSize = shaders[i].size;
+    createInfo.pCode = shaders[i].code;
+    result = vkCreateShaderModule(info->device->handle, &createInfo,
+                                  nullptr, &info->shaderModules[i]);
     if (result != VK_SUCCESS) {
-      rt_error("Failed to create vertex shader module");
-      infoPack->count = i;
-      return infoPack;
+      rt_error("Failed to create shader module");
+      info->shaderCount = i;
+      return result;
     }
-    infoPack->infos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    infoPack->infos[i].pNext = nullptr;
-    infoPack->infos[i].flags = 0;
-    infoPack->infos[i].stage = shaders[i].stage;
-    infoPack->infos[i].module = infoPack->modules[i];
-    infoPack->infos[i].pName = shaders[i].entryPoint;
-    infoPack->infos[i].pSpecializationInfo = nullptr;
+    info->shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    info->shaderStages[i].pNext = nullptr;
+    info->shaderStages[i].flags = 0;
+    info->shaderStages[i].stage = shaders[i].stage;
+    info->shaderStages[i].module = info->shaderModules[i];
+    info->shaderStages[i].pName = shaders[i].entryPoint;
+    info->shaderStages[i].pSpecializationInfo = nullptr;
   }
-  infoPack->count = shaderCount;
-  return infoPack;
+  info->shaderCount = shaderCount;
+  return result;
 }
 
-void XGLVkShaderCreatePack_destroy(XGLVkShaderCreatePack *pack) {
-  if (pack->modules) {
-    for (uint32_t i = 0; i < pack->count; i ++) {
-      if (pack->modules[i] != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(pack->device->handle, pack->modules[i], nullptr);
+VkResult composeVertexInputs(XGLVkPipelineInfo *info,
+         uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
+         uint32_t attributeCount, VkVertexInputAttributeDescription *attributes) {
+  info->vertBindCount = bindingCount;
+  info->vertAttrCount = attributeCount;
+  info->vertBindings = info->allocator->calloc(bindingCount, sizeof(VkVertexInputBindingDescription));
+  info->vertAttributes = info->allocator->calloc(attributeCount, sizeof(VkVertexInputAttributeDescription));
+  info->allocator->memcpy(info->vertBindings, bindings, bindingCount * sizeof(VkVertexInputBindingDescription));
+  info->allocator->memcpy(info->vertAttributes, attributes, attributeCount * sizeof(VkVertexInputAttributeDescription));
+  return VK_SUCCESS;
+}
+
+void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack) {
+  if (pack->shaderModules) {
+    for (uint32_t i = 0; i < pack->shaderCount; i ++) {
+      if (pack->shaderModules[i] != VK_NULL_HANDLE) {
+        vkDestroyShaderModule(pack->device->handle, pack->shaderModules[i], nullptr);
       }
     }
-    pack->allocator->free(pack->modules);
+    pack->allocator->free(pack->shaderModules);
   }
-  if (pack->infos) {
-    pack->allocator->free(pack->infos);
+  if (pack->shaderStages) {
+    pack->allocator->free(pack->shaderStages);
   }
-  pack->allocator->free(pack);
+  if (pack->vertBindings) {
+    pack->allocator->free(pack->vertBindings);
+  }
+  if (pack->vertAttributes) {
+    pack->allocator->free(pack->vertAttributes);
+  }
 }
 
 void XGLVkPipeline_destroy(XGLVkPipeline *pipeline) {

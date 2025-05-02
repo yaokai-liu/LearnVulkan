@@ -37,13 +37,17 @@ typedef struct XGLVkShader {
   const uint32_t *code;
 } XGLVkShader;
 
-typedef struct XGLVkShaderCreatePack {
-  uint32_t count;
+typedef struct XGLVkPipelineInfo {
+  uint32_t shaderCount;
+  uint32_t vertAttrCount;
+  uint32_t vertBindCount;
   const Allocator *allocator;
   const XGLVkDevice *device;
-  VkShaderModule *modules;
-  VkPipelineShaderStageCreateInfo *infos;
-} XGLVkShaderCreatePack;
+  VkShaderModule *shaderModules;
+  VkPipelineShaderStageCreateInfo *shaderStages;
+  VkVertexInputAttributeDescription *vertAttributes;
+  VkVertexInputBindingDescription *vertBindings;
+} XGLVkPipelineInfo;
 
 typedef struct XGLVkPipeline {
   VkPipeline handle;
@@ -53,11 +57,15 @@ typedef struct XGLVkPipeline {
   VkRenderPass renderPass;
 } XGLVkPipeline;
 
-XGLVkShaderCreatePack *composeShaderModules(XGLVkDevice *device, XGLVkShader *shaders, uint32_t shaderCount, const Allocator *allocator);
-void XGLVkShaderCreatePack_destroy(XGLVkShaderCreatePack *pack);
+VkResult composeShaderModules(XGLVkPipelineInfo *info,
+                              XGLVkShader *shaders, uint32_t shaderCount);
+VkResult composeVertexInputs(XGLVkPipelineInfo *info,
+                             uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
+                             uint32_t attributeCount, VkVertexInputAttributeDescription *attributes);
+void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack);
 
 XGLVkPipeline *
-XGLVkPipeline_new(XGLVkDevice *device, XGLVkShaderCreatePack *infoPack, const XGLVkSurface *surface, const Allocator *allocator);
+XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator);
 
 void XGLVkPipeline_destroy(XGLVkPipeline *pipeline);
 #endif //VULKAN_DEMO_XGL_VK_PIPELINE_H

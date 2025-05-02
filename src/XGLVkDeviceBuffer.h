@@ -19,34 +19,31 @@
  *
  * Project Name: VulkanDemo
  * Module Name: src
- * Filename: XGLVkDevice.h
+ * Filename: XGLVkDeviceBuffer.h
  * Creator: Yaokai Liu
- * Create Date: 2025-04-30
+ * Create Date: 2025-05-02
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_DEVICE_H
-#define VULKAN_DEMO_XGL_VK_DEVICE_H
+#ifndef VULKAN_DEMO_XGL_VK_BUFFER_H
+#define VULKAN_DEMO_XGL_VK_BUFFER_H
 
 #include "XGLVulkan.h"
 
-typedef struct XGLVkQueue {
-  VkQueue  queue;
-  uint32_t index;
-} XGLVkQueue;
-
-typedef struct XGLVkDevice {
-  VkDevice handle;
+typedef struct XGLVkDeviceBufferGroup {
+  VkDeviceMemory memory;
+  VkMemoryPropertyFlags property;
   const Allocator *allocator;
-  const XGLVkPhysicalDevice *physical;
-  Array *queues; // Array<XGLVkQueue>
-} XGLVkDevice;
+  const XGLVkDevice *device;
+  uint32_t  count;
+  VkBuffer *buffers;
+} XGLVkDeviceBufferGroup;
 
-XGLVkDevice *XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator);
-void XGLVkDevice_destroy(XGLVkDevice *device);
+XGLVkDeviceBufferGroup *
+XGLVkDeviceBufferGroup_new(const XGLVkDevice *device, uint32_t bufferCount, const XGLVkBufferInfo *bufferInfos,
+                           VkMemoryPropertyFlags memoryProperty, const Allocator *allocator);
+void XGLVkDeviceBufferGroup_destroy(XGLVkDeviceBufferGroup *group);
 
-VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwapchainKHR *swapchains,
-                            const XGLVkRecordInfo *renderInfo);
-XGLVkQueue *XGLVkDevice_getQueue(XGLVkDevice *device, uint32_t index);
-VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, XGLVkBufferCopyInfo *bufferCopyInfo);
-#endif //VULKAN_DEMO_XGL_VK_DEVICE_H
+void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, const uint32_t offset, const uint32_t size, const void *data);
+
+#endif //VULKAN_DEMO_XGL_VK_BUFFER_H

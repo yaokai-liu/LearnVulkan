@@ -28,14 +28,39 @@
 #include "XGLVkPhysicalDevice.h"
 #include "runtime-msg.h"
 #if defined(XGL_WM_USING_GLFW)
-  #define GLFW_INCLUDE_VULKAN
   #include "GLFW/glfw3.h"
 #else
 #error "Please implement other window manager compatibility functions."
 #endif
 #include "XGLVkInstance.h"
-#include "util-macro.h"
 #include <string.h>
+
+void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device);
+void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhysicalDevice *device);
+void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device);
+
+bool XGLVkPhysicalDevice_suitable(const XGLVkPhysicalDevice *device) {
+  if (device->properties.apiVersion < XGL_VK_API_VERSION) {
+    rt_message("Device '%s' not supports required Vulkan API", device->properties.deviceName);
+    return false;
+  }
+  if (device->properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+    rt_message("Device '%s' is not a discrete GPU", device->properties.deviceName);
+    return false;
+  }
+  if (!device->features.geometryShader) {
+    rt_message("Device '%s' has no geometry shader", device->properties.deviceName);
+    return false;
+  }
+  return true;
+}
+
+void XGLVkPhysicalDevice_enumerate(XGLVkPhysicalDevice *device) {
+  XGLVkPhysicalDevice_enumerateLayers(device);
+  XGLVkPhysicalDevice_enumerateExtensions(device);
+  XGLVkPhysicalDevice_enumerateQueueFamilies(device);
+  vkGetPhysicalDeviceMemoryProperties(device->handle, &device->memoryProperties);
+}
 
 void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device) {
   uint32_t queueFamilyCount = 0;
@@ -46,53 +71,6 @@ void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device) {
   Array_resize(device->queueFamilies, queueFamilyCount, nullptr);
   VkQueueFamilyProperties *queueFamilies = Array_first_real(device->queueFamilies);
   vkGetPhysicalDeviceQueueFamilyProperties(device->handle, &queueFamilyCount, queueFamilies);
-}
-
-const XGLVkPhysicalDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance) {
-  uint32_t deviceCount = Array_length(instance->devices);
-  XGLVkPhysicalDevice *const devices = Array_first_real(instance->devices);
-  for (uint32_t i = 0; i < deviceCount; i ++) {
-    rt_message("Detect Physical device '%s'", devices[i].properties.deviceName);
-    if (devices[i].properties.apiVersion < XGL_VK_API_VERSION) {
-      rt_message("Device '%s' not supports required Vulkan API, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    if (devices[i].properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      rt_message("Device '%s' is not a discrete GPU, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    if (!devices[i].features.geometryShader) {
-      rt_message("Device '%s' has no geometry shader, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    XGLVkPhysicalDevice_enumerateLayers(&devices[i]);
-    XGLVkPhysicalDevice_enumerateExtensions(&devices[i]);
-    XGLVkPhysicalDevice_enumerateQueueFamilies(&devices[i]);
-    VkResult result = XGLVkPhysicalDevice_verifyLayers(&devices[i],
-                                              REQUIRED_DEVICE_LAYER_NAME_COUNT,
-                                              REQUIRED_DEVICE_LAYER_NAMES);
-    if (result != VK_SUCCESS) {
-      rt_message("Device '%s' not support all requested layers, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    result = XGLVkPhysicalDevice_verifyExtensions(&devices[i],
-                                                  REQUIRED_DEVICE_EXTENSION_NAME_COUNT,
-                                                  REQUIRED_DEVICE_EXTENSION_NAMES);
-    if (result != VK_SUCCESS) {
-      rt_message("Device '%s' not support all requested extensions, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    result = XGLVkPhysicalDevice_detectWindow(&devices[i], window, instance);
-    if (result != VK_SUCCESS) {
-      rt_message("Device '%s' is not suitable for the window, skip", devices[i].properties.deviceName);
-      continue;
-    }
-    rt_message("Picking Physical Device '%s' (driver version: %u)",
-               devices[i].properties.deviceName,
-               devices[i].properties.driverVersion);
-    return &devices[i];
-  }
-  return nullptr;
 }
 
 void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device) {
@@ -209,4 +187,15 @@ void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *a
     Array_reset(device->layers, (destruct_t *) XGLVkLayer_release);
     Array_destroy(device->layers);
   }
+}
+
+uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device,
+                                         const VkMemoryPropertyFlags property,
+                                         const uint32_t typeFilter) {
+  auto props = device->memoryProperties;
+  for (uint32_t i = 0; i < props.memoryTypeCount; i++) {
+    if ((props.memoryTypes[i].propertyFlags & property) != property) { continue; }
+    if (typeFilter & (1 << i)) { return i; }
+  }
+  return UINT32_MAX;
 }

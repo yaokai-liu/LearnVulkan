@@ -38,18 +38,20 @@ typedef struct XGLVkPhysicalDevice {
   Array *layers; // Array<XGLVkLayer>
   Array *extensions; // Array<VkExtensionProperties>
   Array *queueFamilies; // Array<VkQueueFamilyProperties>
+  VkPhysicalDeviceMemoryProperties memoryProperties;
 } XGLVkPhysicalDevice;
 
-void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device);
-void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhysicalDevice *device);
-void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device);
+void XGLVkPhysicalDevice_enumerate(XGLVkPhysicalDevice *device);
 
-void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *allocator);
-
+bool XGLVkPhysicalDevice_suitable(const XGLVkPhysicalDevice *device);
 VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhysicalDevice *device, uint32_t layerCount, const char *layerNames[]);
 VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhysicalDevice *device, uint32_t extensionCount, const char *extensionNames[]);
 VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device, XGLWMWindow *window,
                                           const XGLVkInstance *instance);
 
+void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *allocator);
+
+uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device, const VkMemoryPropertyFlags property,
+                                         const uint32_t typeFilter);
 
 #endif //VULKAN_DEMO_XGL_VK_PHYSICAL_DEVICE_H

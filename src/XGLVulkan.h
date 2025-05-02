@@ -41,6 +41,8 @@
 
 #define GRAPHICS_QUEUE_INDEX 0
 #define PRESENT_QUEUE_INDEX  1
+#define TRANSFER_QUEUE_INDEX 2
+#define TOTAL_QUEUE_TYPE_COUNT 3
 
 #define MAX_FRAME_ON_DRAW   2
 
@@ -59,6 +61,7 @@ typedef struct XGLVkPipeline XGLVkPipeline;
 typedef struct XGLVkSwapchain XGLVkSwapchain;
 typedef struct XGLVkSemaphoreGroup XGLVkSemaphoreGroup;
 typedef struct XGLVkFenceGroup XGLVkFenceGroup;
+typedef struct XGLVkDeviceBufferGroup XGLVkDeviceBufferGroup;
 
 typedef struct XGLVkLayer {
   VkLayerProperties properties;
@@ -71,7 +74,17 @@ typedef struct XGLSoftware {
   uint32_t version;
 } XGLSoftware;
 
-typedef struct XGLVkRenderInfo {
+typedef struct XGLVkBufferInfo {
+  VkBufferCreateFlags    flags;
+  VkDeviceSize           size;
+  VkBufferUsageFlags     usage;
+  VkSharingMode          sharingMode;
+  uint32_t               memoryOffset;
+  uint32_t               queueFamilyIndexCount;
+  const uint32_t*        pQueueFamilyIndices;
+} XGLVkBufferInfo;
+
+typedef struct XGLVkRecordInfo {
   VkClearValue clearValue;
   uint32_t     imageIndex;
   uint32_t     waitSemCount;
@@ -81,7 +94,16 @@ typedef struct XGLVkRenderInfo {
   VkSemaphore *presentSemaphores;
   VkSemaphore *submitSemaphores;
   VkPipelineStageFlags *waitStageFlags;
-} XGLVkRenderInfo;
+} XGLVkRecordInfo;
+
+typedef struct XGLVkBufferCopyInfo {
+  uint32_t  count;
+  bool      sameDst;
+  VkBuffer *dstBuffers;
+  const void **datas;
+  const uint32_t *sizes;
+  uint32_t *dstOffsets;
+} XGLVkBufferCopyInfo;
 
 void XGLVkLayer_release(XGLVkLayer *layer, const Allocator *allocator);
 

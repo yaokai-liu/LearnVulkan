@@ -35,11 +35,15 @@ typedef struct XGLVkCommandPool {
   const XGLVkDevice *device;
   const Allocator *allocator;
   uint32_t bufferCount;
-  VkCommandBuffer *buffers;
+  Array *buffers; // Array<VkCommandBuffer>
 } XGLVkCommandPool;
 
 XGLVkCommandPool *XGLVkCommandPool_new(XGLVkDevice *device, const Allocator *allocator);
 void XGLVkCommandPool_destroy(XGLVkCommandPool *pool);
-VkResult XGLVkCommand_record(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
-                    const XGLVkPipeline *pipeline, const XGLVkRenderInfo *recordInfo);
+VkCommandBuffer *XGLVkCommandPool_newCommand(XGLVkCommandPool *pool, uint32_t count);
+VkCommandBuffer XGLVkCommandPool_getCommand(XGLVkCommandPool *pool, uint32_t index);
+VkResult XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
+                                  const XGLVkPipeline *pipeline, const XGLVkRecordInfo *recordInfo);
+VkResult XGLVkCommand_endRecord(VkCommandBuffer command);
+
 #endif //VULKAN_DEMO_XGL_VK_COMMAND_H

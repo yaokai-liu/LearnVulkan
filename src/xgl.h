@@ -37,5 +37,11 @@
 #include "XGLVkSwapchain.h"
 #include "XGLVkCommandPool.h"
 #include "XGLVkSync.h"
+#include "XGLVkDeviceBuffer.h"
+
+typedef struct Vertex {
+  float coord[2];
+  float color[4];
+} Vertex;
 
 #endif //VULKAN_DEMO_XGL_H
