@@ -38,10 +38,33 @@
 #include "XGLVkCommandPool.h"
 #include "XGLVkSync.h"
 #include "XGLVkDeviceBuffer.h"
+#include "xglm.h"
+
+#ifdef XGL_MATH_DEBUG_PRINT
+#define printFMat4(M) \
+        rt_debug(#M" =\n"     \
+        "\t%f\t%f\t%f\t%f\n"  \
+        "\t%f\t%f\t%f\t%f\n"  \
+        "\t%f\t%f\t%f\t%f\n"  \
+        "\t%f\t%f\t%f\t%f\n", \
+        M[0][0], M[0][1], M[0][2], M[0][3], \
+        M[1][0], M[1][1], M[1][2], M[1][3], \
+        M[2][0], M[2][1], M[2][2], M[2][3], \
+        M[3][0], M[3][1], M[3][2], M[3][3]  \
+)
+#endif
+
+typedef FVec4 XGLColor;
 
 typedef struct Vertex {
-  float coord[2];
+  float coord[4];
   float color[4];
 } Vertex;
+
+typedef struct MVP {
+  FMat4 model [[gnu::aligned(16)]];
+  FMat4 view [[gnu::aligned(16)]];
+  FMat4 proj [[gnu::aligned(16)]];
+} MVP;
 
 #endif //VULKAN_DEMO_XGL_H

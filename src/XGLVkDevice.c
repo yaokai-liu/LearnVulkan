@@ -29,7 +29,7 @@
 #include "XGLVkPhysicalDevice.h"
 #include "XGLVkSurface.h"
 #include "runtime-msg.h"
-#include "util-macro.h"
+#include "utils.h"
 #include "XGLVkDeviceBuffer.h"
 #include "XGLVkCommandPool.h"
 

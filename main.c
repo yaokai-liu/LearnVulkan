@@ -1,11 +1,12 @@
 
 #include "xgl.h"
+#include <math.h>
 #include <stdio.h>
-#include <string.h>
+#include <time.h>
 #include "allocator.h"
 #include "runtime-msg.h"
 #include "callback.h"
-#include "util-macro.h"
+#include "utils.h"
 
 uint8_t *loadBinFile(const char *filepath, uint32_t *real_size, const Allocator *allocator);
 
@@ -54,12 +55,68 @@ int main(int argc, char * argv[]) {
       { .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX }
   };
   VkVertexInputAttributeDescription vertInputAttrDescriptions[2] = {
-      { .location = 0, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(Vertex, coord) },
+      { .location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(Vertex, coord) },
       { .location = 1, .binding = 0, .format = VK_FORMAT_R32G32B32A32_SFLOAT, .offset = offsetof(Vertex, color) }
   };
   result = composeVertexInputs(&pipeInfo,
                                1, vertInputBindingDescriptions,
                                2, vertInputAttrDescriptions);
+  if (result != VK_SUCCESS) { return -1; }
+  VkDescriptorSetLayoutBinding mvpLayoutBinding = {
+      .binding = 0,
+      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .descriptorCount = 1,
+      .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+      .pImmutableSamplers = nullptr,
+  };
+  result = composeSetLayouts(&pipeInfo, 1, &mvpLayoutBinding);
+  if (result != VK_SUCCESS) { return -1; }
+  VkDescriptorPoolSize poolSize = {
+      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = MAX_FRAME_ON_DRAW
+  };
+  VkDescriptorPoolCreateInfo poolCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .pNext = nullptr, .flags = 0,
+      .maxSets = MAX_FRAME_ON_DRAW, .poolSizeCount = 1, .pPoolSizes = &poolSize
+  };
+  VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+  vkCreateDescriptorPool(logicalDevice->handle, &poolCreateInfo, nullptr, &descriptorPool);
+  VkDescriptorSetLayout setLayouts[MAX_FRAME_ON_DRAW] = {
+      *(VkDescriptorSetLayout *) Array_first_real(pipeInfo.descriptorSetLayouts),
+      *(VkDescriptorSetLayout *) Array_first_real(pipeInfo.descriptorSetLayouts),
+  };
+
+  VkDescriptorSetAllocateInfo setAllocateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .pNext = nullptr,
+      .descriptorPool = descriptorPool, .descriptorSetCount = MAX_FRAME_ON_DRAW,
+      .pSetLayouts = setLayouts,
+  };
+  VkDescriptorSet descriptorSets[MAX_FRAME_ON_DRAW] = {};
+  vkAllocateDescriptorSets(logicalDevice->handle, &setAllocateInfo, descriptorSets);
+  XGLVkBufferInfo uboInfos[MAX_FRAME_ON_DRAW] = {};
+  for (uint32_t i = 0; i < MAX_FRAME_ON_DRAW; i ++) {
+    uboInfos[i].flags = 0;
+    uboInfos[i].size = sizeof(MVP);
+    uboInfos[i].usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    uboInfos[i].sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    uboInfos[i].memoryOffset = i * sizeof(MVP);
+    uboInfos[i].queueFamilyIndexCount = 0;
+    uboInfos[i].pQueueFamilyIndices = nullptr;
+  };
+  XGLVkDeviceBufferGroup *uboGroup  = XGLVkDeviceBufferGroup_new(
+      logicalDevice, MAX_FRAME_ON_DRAW, uboInfos,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, allocator
+  );
+  MVP * const uboMapped = XGLVkDeviceBufferGroup_mapping(uboGroup, 0, MAX_FRAME_ON_DRAW * sizeof(MVP));
+  for (uint32_t i = 0; i < MAX_FRAME_ON_DRAW; i ++) {
+    VkDescriptorBufferInfo bufferInfo = { .buffer = uboGroup->buffers[i], .offset = 0, .range = sizeof(MVP) };
+    VkWriteDescriptorSet writeInfo = {
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, .pNext = nullptr,
+        .dstSet = descriptorSets[i], .dstBinding = 0, .dstArrayElement = 0,
+        .descriptorCount = 1, .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .pImageInfo = nullptr, .pBufferInfo = &bufferInfo, .pTexelBufferView = nullptr,
+    };
+    vkUpdateDescriptorSets(logicalDevice->handle, 1, &writeInfo, 0, nullptr);
+  }
   XGLVkPipeline * pipeline = XGLVkPipeline_new(logicalDevice, &pipeInfo, surface, allocator);
   XGLVkShaderCreatePack_destroy(&pipeInfo);
 
@@ -72,12 +129,23 @@ int main(int argc, char * argv[]) {
   XGLVkFenceGroup *presentFiniFenGroup = XGLVkFenceGroup_new(logicalDevice, fenceFlags, MAX_FRAME_ON_DRAW, allocator);
 
   const Vertex vertices[] = {
-      {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-      {{ 0.5f, -0.5f}, {1.0f, 1.0f, 0.0f, 1.0f}},
-      {{ 0.5f,  0.5f}, {0.0f, 1.0f, 1.0f, 1.0f}},
-      {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+      {{-0.5f, -0.5f,  0.5f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+      {{ 0.5f, -0.5f,  0.5f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+      {{ 0.5f,  0.5f,  0.5f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}},
+      {{-0.5f,  0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+      {{-0.5f, -0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+      {{ 0.5f, -0.5f, -0.5f, 1.0f}, {0.0f, 1.0f, 1.0f, 1.0f}},
+      {{ 0.5f,  0.5f, -0.5f, 1.0f}, {1.0f, 1.0f, 0.0f, 1.0f}},
+      {{-0.5f,  0.5f, -0.5f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
   };
-  const uint32_t indices[] = { 0, 1, 2, 2, 3, 0 };
+  const uint32_t indices[] = {
+      0, 1, 2, 0, 2, 3,
+      4, 6, 5, 4, 7, 6,
+      0, 4, 5, 0, 5, 1,
+      3, 6, 7, 3, 2, 6,
+      1, 5, 6, 1, 6, 2,
+      4, 0, 3, 4, 3, 7
+  };
   XGLVkBufferInfo bufferInfos[2] = {
     {
       .flags = 0, .size = sizeof(vertices), .pQueueFamilyIndices = nullptr,
@@ -93,15 +161,34 @@ int main(int argc, char * argv[]) {
   XGLVkDeviceBufferGroup *bufferGroup = XGLVkDeviceBufferGroup_new(
       logicalDevice, 2, bufferInfos,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, allocator);
-  uint32_t sizes[] = {sizeof(vertices), sizeof(indices)};
-  uint32_t offsets[] = {0, 0};
-  const void *datas[] = {vertices, indices};
-  XGLVkBufferCopyInfo copyInfo = {
-      .count = 2, .datas = datas, .dstBuffers = bufferGroup->buffers,
-      .sizes = sizes, .dstOffsets = offsets, .sameDst = false
-  };
-  XGLVkDevice_cmdCopyBufferData(logicalDevice, commandPool, &copyInfo);
+  /** update buffer data */ {
+    uint32_t sizes[] = { sizeof(vertices), sizeof(indices) };
+    uint32_t offsets[] = { 0, 0 };
+    const void *datas[] = { vertices, indices };
+    XGLVkBufferCopyInfo copyInfo = {
+        .count = 2, .datas = datas, .dstBuffers = bufferGroup->buffers,
+        .sizes = sizes, .dstOffsets = offsets, .sameDst = false
+    };
+    XGLVkDevice_cmdCopyBufferData(logicalDevice, commandPool, &copyInfo);
+  }
 
+  MVP mvp = {};
+  floatMatDiag(mvp.model, (FVec4) {1.0f, 1.0f, 1.0f, 1.0f});
+//  matAffineShift(mvp.model, (FVec4) {-0.5f, 0.0f, 0.0f, 0.0f});
+//  matAffineRotate(mvp.model, (FVec4){0.0f, 0.0f, 1.0f, 0.0f}, M_PI / 3);
+  matFromLookAt(mvp.view, (FAffPoint4){0.5f, 0.5f, 0.5f, 1.0f},
+                (FVec4){-0.5f, -0.5f, -0.5f, 0.0f},
+                (FVec4){-0.0f, -0.0f, -1.0f, 0.0f});
+  matFromOrthoProjection(mvp.proj, (FVec2) {-2.0f, 2.0f}, (FVec2) {-2.0f, 2.0f}, (FVec2) {-4.0f, 4.0f});
+//  matFromPersProjection(mvp.proj,
+//                        (FVec2) {-2.0f, 2.0f},
+//                        (FVec2) {-2.0f, 2.0f},
+//                        (FVec2) {-2.0f, 2.0f});
+  printFMat4(mvp.model);
+  printFMat4(mvp.view);
+  printFMat4(mvp.proj);
+
+  clock_t start = clock();
   while(!glfwWindowShouldClose(window)) {
     processInput(window);
     glfwPollEvents();
@@ -136,12 +223,21 @@ int main(int argc, char * argv[]) {
 
       result = XGLVkCommand_startRecord(command, surface, swapchain, pipeline, &renderInfo);
       if (result != VK_SUCCESS) { break; }
-      VkBuffer vertexBuffer = bufferGroup->buffers[0];
-      VkBuffer indexBuffer = bufferGroup->buffers[1];
-      VkDeviceSize offset = {0};
-      vkCmdBindVertexBuffers(command, 0, 1, &vertexBuffer, &offset);
-      vkCmdBindIndexBuffer(command, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-      vkCmdDrawIndexed(command, lenof(indices), 1, 0, 0, 0);
+      /* record draw command */ {
+        float angle = (float) (((double) (clock() - start)) / CLOCKS_PER_SEC);
+        matFromAffineRotate(mvp.model, (FVec4) {0.0f, 0.0f, 1.0f, 0.0f}, angle);
+//        matAffineShift(mvp.model, (FVec4) {-0.5f, 0.0f, 0.0f, 0.0f});
+        uboMapped[swapchain->currentIndex] = mvp;
+        VkBuffer vertexBuffer = bufferGroup->buffers[0];
+        VkBuffer indexBuffer = bufferGroup->buffers[1];
+        VkDeviceSize offset = { 0 };
+        vkCmdBindVertexBuffers(command, 0, 1, &vertexBuffer, &offset);
+        vkCmdBindIndexBuffer(command, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(command, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout,
+                                0, 1, &descriptorSets[swapchain->currentIndex],
+                                0, nullptr);
+        vkCmdDrawIndexed(command, lenof(indices), 1, 0, 0, 0);
+      }
       result = XGLVkCommand_endRecord(command);
       if (result != VK_SUCCESS) { break; }
 
@@ -153,6 +249,8 @@ int main(int argc, char * argv[]) {
 
   vkDeviceWaitIdle(logicalDevice->handle);
 
+  vkDestroyDescriptorPool(logicalDevice->handle, descriptorPool, nullptr);
+  XGLVkDeviceBufferGroup_destroy(uboGroup);
   XGLVkDeviceBufferGroup_destroy(bufferGroup);
   XGLVkSemaphoreGroup_destroy(rendFiniSemGroup);
   XGLVkSemaphoreGroup_destroy(imgAvaSemGroup);

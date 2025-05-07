@@ -30,6 +30,8 @@
 
 #include "XGLVulkan.h"
 
+typedef struct XGLVkDeviceMemoryMapping XGLVkDeviceMemoryMapping;
+
 typedef struct XGLVkDeviceBufferGroup {
   VkDeviceMemory memory;
   VkMemoryPropertyFlags property;
@@ -37,6 +39,7 @@ typedef struct XGLVkDeviceBufferGroup {
   const XGLVkDevice *device;
   uint32_t  count;
   VkBuffer *buffers;
+  XGLVkDeviceMemoryMapping *mapping;
 } XGLVkDeviceBufferGroup;
 
 XGLVkDeviceBufferGroup *
@@ -44,6 +47,8 @@ XGLVkDeviceBufferGroup_new(const XGLVkDevice *device, uint32_t bufferCount, cons
                            VkMemoryPropertyFlags memoryProperty, const Allocator *allocator);
 void XGLVkDeviceBufferGroup_destroy(XGLVkDeviceBufferGroup *group);
 
-void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, const uint32_t offset, const uint32_t size, const void *data);
+void *XGLVkDeviceBufferGroup_mapping(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size);
+
+void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size, const void *data);
 
 #endif //VULKAN_DEMO_XGL_VK_BUFFER_H

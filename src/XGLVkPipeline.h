@@ -47,6 +47,7 @@ typedef struct XGLVkPipelineInfo {
   VkPipelineShaderStageCreateInfo *shaderStages;
   VkVertexInputAttributeDescription *vertAttributes;
   VkVertexInputBindingDescription *vertBindings;
+  Array *descriptorSetLayouts; // Array<VkDescriptorSetLayout>
 } XGLVkPipelineInfo;
 
 typedef struct XGLVkPipeline {
@@ -62,6 +63,7 @@ VkResult composeShaderModules(XGLVkPipelineInfo *info,
 VkResult composeVertexInputs(XGLVkPipelineInfo *info,
                              uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
                              uint32_t attributeCount, VkVertexInputAttributeDescription *attributes);
+VkResult composeSetLayouts(XGLVkPipelineInfo *info, uint32_t bindingCount, VkDescriptorSetLayoutBinding *bindings);
 void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack);
 
 XGLVkPipeline *

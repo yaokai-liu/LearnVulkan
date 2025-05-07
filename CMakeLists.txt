@@ -56,6 +56,11 @@ include_directories(meman)
 aux_source_directory(meman MEMAN_SRC)
 add_library(meman STATIC ${MEMAN_SRC})
 
+add_compile_definitions("XGL_MATH_DEBUG_PRINT")
+
+add_subdirectory(xglm)
+include_directories(xglm/src)
+
 find_package(Vulkan REQUIRED)
 
 add_compile_definitions(XGL_WM_USING_GLFW)
@@ -65,4 +70,4 @@ include_directories(glfw/include)
 include_directories(src)
 aux_source_directory(src SRC)
 add_executable(VulkanDemo main.c ${SRC})
-target_link_libraries(VulkanDemo PRIVATE meman glfw Vulkan::Vulkan)
+target_link_libraries(VulkanDemo PRIVATE xglm meman glfw Vulkan::Vulkan)

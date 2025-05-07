@@ -28,9 +28,9 @@
 #include <string.h>
 #include "XGLVkInstance.h"
 #include "XGLVkPhysicalDevice.h"
-#include "util-macro.h"
-#include "callback.h"
 #include "runtime-msg.h"
+#include "callback.h"
+#include "utils.h"
 
 const char* INSTANCE_REQUIRED_EXTENSION_NAMES[] = {
     /** @{ glfw required extensions */

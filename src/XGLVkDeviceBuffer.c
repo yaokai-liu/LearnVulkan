@@ -30,12 +30,19 @@
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
 
+typedef struct XGLVkDeviceMemoryMapping {
+  uint32_t offset, size;
+  void *   address;
+} XGLVkDeviceMemoryMapping;
+
+
 XGLVkDeviceBufferGroup *
 XGLVkDeviceBufferGroup_new(const XGLVkDevice *device, const uint32_t bufferCount, const XGLVkBufferInfo *bufferInfos,
                            const VkMemoryPropertyFlags memoryProperty, const Allocator *allocator) {
 
   XGLVkDeviceBufferGroup *group = allocator->calloc(1, sizeof(XGLVkDeviceBufferGroup));
   group->allocator = allocator;
+  group->mapping = nullptr;
   group->device = device;
   group->buffers = allocator->calloc(bufferCount, sizeof(VkBuffer));
   for (group->count = 0; group->count < bufferCount; group->count ++) {
@@ -91,13 +98,26 @@ void XGLVkDeviceBufferGroup_destroy(XGLVkDeviceBufferGroup *group) {
     }
     group->allocator->free(group->buffers);
   }
+  if (group->mapping) {
+    vkUnmapMemory(group->device->handle, group->memory);
+    group->allocator->free(group->mapping);
+  }
   if (group->memory) { vkFreeMemory(group->device->handle, group->memory, nullptr); }
   group->allocator->free(group);
 }
 
+void *XGLVkDeviceBufferGroup_mapping(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size) {
+  if (group->mapping) { vkUnmapMemory(group->device->handle, group->memory); }
+  else { group->mapping = group->allocator->calloc(1, sizeof(XGLVkDeviceMemoryMapping)); }
+  group->mapping->address = nullptr;
+  group->mapping->offset = offset;
+  group->mapping->size = size;
+  vkMapMemory(group->device->handle, group->memory, offset, size, 0, &group->mapping->address);
+  return group->mapping->address;
+}
+
 void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, const uint32_t offset, const uint32_t size, const void *data) {
-  void *mappingAddr = nullptr;
-  vkMapMemory(group->device->handle, group->memory, offset, size, 0, &mappingAddr);
+  void *mappingAddr = XGLVkDeviceBufferGroup_mapping(group, offset, size);
   group->allocator->memcpy(mappingAddr, data, size);
   if ((group->property & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
     VkMappedMemoryRange memoryRange = {
@@ -107,5 +127,4 @@ void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, const uint32_t of
     };
     vkFlushMappedMemoryRanges( group->device->handle, 1, &memoryRange);
   }
-  vkUnmapMemory(group->device->handle, group->memory);
 }

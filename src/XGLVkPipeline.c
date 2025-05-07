@@ -29,7 +29,7 @@
 #include "XGLVkSurface.h"
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
-#include "util-macro.h"
+#include "utils.h"
 
 XGLVkPipeline *
 XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator) {
@@ -82,9 +82,9 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .flags = 0,
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
-      .polygonMode = VK_POLYGON_MODE_FILL,
+      .polygonMode = VK_POLYGON_MODE_LINE,
       .cullMode = VK_CULL_MODE_BACK_BIT,
-      .frontFace = VK_FRONT_FACE_CLOCKWISE,
+      .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
       .depthBiasEnable = VK_FALSE,
       .depthBiasConstantFactor = 0,
       .depthBiasClamp = 0,
@@ -132,8 +132,8 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
-      .setLayoutCount = 0,
-      .pSetLayouts = nullptr,
+      .setLayoutCount = info->descriptorSetLayouts ? Array_length(info->descriptorSetLayouts) : 0,
+      .pSetLayouts = info->descriptorSetLayouts ? Array_first_real(info->descriptorSetLayouts) : nullptr,
       .pushConstantRangeCount = 0,
       .pPushConstantRanges = nullptr,
   };
@@ -219,7 +219,7 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
   };
   result = vkCreateGraphicsPipelines(device->handle, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline->handle);
   if (result != VK_SUCCESS) {
-    rt_error("Failed to create graphics handle");
+    rt_error("Failed to create graphics pipelines");
     XGLVkPipeline_destroy(pipeline);
   }
   return pipeline;
@@ -271,6 +271,21 @@ VkResult composeVertexInputs(XGLVkPipelineInfo *info,
   info->allocator->memcpy(info->vertAttributes, attributes, attributeCount * sizeof(VkVertexInputAttributeDescription));
   return VK_SUCCESS;
 }
+VkResult composeSetLayouts(XGLVkPipelineInfo *info, uint32_t bindingCount, VkDescriptorSetLayoutBinding *bindings) {
+  VkDescriptorSetLayoutCreateInfo setLayoutCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .pNext = nullptr,
+      .flags = 0, .bindingCount = bindingCount, .pBindings = bindings,
+  };
+  VkDescriptorSetLayout setLayout = VK_NULL_HANDLE;
+  VkResult result = vkCreateDescriptorSetLayout(info->device->handle, &setLayoutCreateInfo, nullptr, &setLayout);
+  if (result != VK_SUCCESS) {
+    rt_error("Failed to create set layout");
+    return result;
+  }
+  if (!info->descriptorSetLayouts) { info->descriptorSetLayouts = Array_new(sizeof(VkDescriptorSetLayout), -1, info->allocator); }
+  Array_append(info->descriptorSetLayouts, &setLayout, 1);
+  return result;
+}
 
 void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack) {
   if (pack->shaderModules) {
@@ -289,6 +304,16 @@ void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack) {
   }
   if (pack->vertAttributes) {
     pack->allocator->free(pack->vertAttributes);
+  }
+  if (pack->descriptorSetLayouts) {
+    uint32_t count = Array_length(pack->descriptorSetLayouts);
+    VkDescriptorSetLayout *layouts = Array_first_real(pack->descriptorSetLayouts);
+    for (uint32_t i = 0; i < count; i ++) {
+      if (layouts[i] != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(pack->device->handle, layouts[i], nullptr);
+      }
+    }
+    releasePrimeArray(pack->descriptorSetLayouts);
   }
 }
 

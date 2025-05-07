@@ -4,3 +4,6 @@
 [submodule "glfw"]
 	path = glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "xglm"]
+	path = xglm
+	url = git@github.com:yaokai-liu/xglm.git

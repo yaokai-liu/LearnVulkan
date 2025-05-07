@@ -35,8 +35,7 @@
 #endif
 #include "XGLVkInstance.h"
 #include "XGLVkPhysicalDevice.h"
-#include "util-macro.h"
-#include <string.h>
+#include "utils.h"
 
 VkPresentModeKHR PRESENT_MODE = VK_PRESENT_MODE_FIFO_KHR;
 #if defined(XGL_SURFACE_WIN32)

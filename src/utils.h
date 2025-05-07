@@ -28,8 +28,11 @@
 #ifndef VULKAN_DEMO_UTIL_MACRO_H
 #define VULKAN_DEMO_UTIL_MACRO_H
 
+#include <stdint.h>
 #include "minmax.h"
+#include "xgl.h"
 
 #define lenof(_array) (sizeof(_array) / sizeof(typeof(_array[0])))
+void rgba2XGLColor(uint32_t rgba, XGLColor *gl_color);
 
 #endif //VULKAN_DEMO_UTIL_MACRO_H

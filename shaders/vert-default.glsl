@@ -1,12 +1,18 @@
 #version 450
 
+layout(location = 0) in vec4 coord;
+layout(location = 1) in vec4 color;
 
-layout(location = 0) in vec2 inPosition;
-layout(location = 1) in vec4 inColor;
+layout(binding = 0, row_major) uniform MVP {
+  mat4 model;
+  mat4 view;
+  mat4 proj;
+} mvp;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
-    gl_Position = vec4(inPosition, 0.0f, 1.0f);
-    fragColor = inColor;
+  gl_Position = mvp.proj * mvp.view * mvp.model * coord;
+//  gl_Position = coord;
+  fragColor = color;
 }
