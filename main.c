@@ -176,14 +176,14 @@ int main(int argc, char * argv[]) {
   floatMatDiag(mvp.model, (FVec4) {1.0f, 1.0f, 1.0f, 1.0f});
 //  matAffineShift(mvp.model, (FVec4) {-0.5f, 0.0f, 0.0f, 0.0f});
 //  matAffineRotate(mvp.model, (FVec4){0.0f, 0.0f, 1.0f, 0.0f}, M_PI / 3);
-  matFromLookAt(mvp.view, (FAffPoint4){0.5f, 0.5f, 0.5f, 1.0f},
-                (FVec4){-0.5f, -0.5f, -0.5f, 0.0f},
+  matFromLookAt(mvp.view, (FAffPoint4){2.0f, 2.0f, 2.0f, 1.0f},
+                (FVec4){-2.0f, -2.0f, -2.0f, 0.0f},
                 (FVec4){-0.0f, -0.0f, -1.0f, 0.0f});
   matFromOrthoProjection(mvp.proj, (FVec2) {-2.0f, 2.0f}, (FVec2) {-2.0f, 2.0f}, (FVec2) {-4.0f, 4.0f});
-//  matFromPersProjection(mvp.proj,
-//                        (FVec2) {-2.0f, 2.0f},
-//                        (FVec2) {-2.0f, 2.0f},
-//                        (FVec2) {-2.0f, 2.0f});
+  matFromPersProjection(mvp.proj,
+                        (FVec2) {-2.0f, 2.0f},
+                        (FVec2) {-2.0f, 2.0f},
+                        (FVec2) {2.0f, 100.0f});
   printFMat4(mvp.model);
   printFMat4(mvp.view);
   printFMat4(mvp.proj);
