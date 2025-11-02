@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkSurface.c
  * Creator: Yaokai Liu
@@ -132,8 +132,8 @@ void XGLVkSurface_update(XGLVkSurface *surface) {
   surface->viewport.y = 0.0f;
   surface->viewport.width = (float) surface->extent.width;
   surface->viewport.height = (float) surface->extent.height;
-  surface->viewport.minDepth = 0.0f;
-  surface->viewport.maxDepth = 1.0f;
+  surface->viewport.minDepth = -1.0f;
+  surface->viewport.maxDepth =  1.0f;
   surface->scissor.offset.x = 0;
   surface->scissor.offset.y = 0;
   surface->scissor.extent = surface->extent;

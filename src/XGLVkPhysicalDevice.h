@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XLGVkPhysicalDevice.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_PHYSICAL_DEVICE_H
-#define VULKAN_DEMO_XGL_VK_PHYSICAL_DEVICE_H
+#ifndef XGL_VK_PHYSICAL_DEVICE_H
+#define XGL_VK_PHYSICAL_DEVICE_H
 
 #include "XGLVulkan.h"
 
@@ -51,7 +51,7 @@ VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device, XGL
 
 void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *allocator);
 
-uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device, const VkMemoryPropertyFlags property,
-                                         const uint32_t typeFilter);
+uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device, VkMemoryPropertyFlags property,
+                                         uint32_t typeFilter);
 
-#endif //VULKAN_DEMO_XGL_VK_PHYSICAL_DEVICE_H
+#endif //XGL_VK_PHYSICAL_DEVICE_H

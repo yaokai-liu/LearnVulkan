@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkSync.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_SYNC_H
-#define VULKAN_DEMO_XGL_VK_SYNC_H
+#ifndef XGL_VK_SYNC_H
+#define XGL_VK_SYNC_H
 #include "XGLVulkan.h"
 
 typedef struct XGLVkSemaphoreGroup {
@@ -47,4 +47,4 @@ void XGLVkSemaphoreGroup_destroy(XGLVkSemaphoreGroup *group);
 XGLVkFenceGroup *XGLVkFenceGroup_new(const XGLVkDevice *device, const VkFenceCreateFlags *flags, uint32_t count, const Allocator *allocator);
 void XGLVkFenceGroup_destroy(XGLVkFenceGroup *group);
 
-#endif //VULKAN_DEMO_XGL_VK_SYNC_H
+#endif //XGL_VK_SYNC_H

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XLGVkPhysicalDevice.c
  * Creator: Yaokai Liu
@@ -179,7 +179,7 @@ VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device,
   return ~VK_SUCCESS;
 }
 
-void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *allocator) {
+void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *) {
   if (device->queueFamilies) {
     releasePrimeArray(device->queueFamilies);
   }

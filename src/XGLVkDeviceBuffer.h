@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkDeviceBuffer.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_BUFFER_H
-#define VULKAN_DEMO_XGL_VK_BUFFER_H
+#ifndef XGL_VK_BUFFER_H
+#define XGL_VK_BUFFER_H
 
 #include "XGLVulkan.h"
 
@@ -51,4 +51,4 @@ void *XGLVkDeviceBufferGroup_mapping(XGLVkDeviceBufferGroup *group, uint32_t off
 
 void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size, const void *data);
 
-#endif //VULKAN_DEMO_XGL_VK_BUFFER_H
+#endif //XGL_VK_BUFFER_H

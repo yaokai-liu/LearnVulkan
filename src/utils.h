@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: util-macro.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_UTIL_MACRO_H
-#define VULKAN_DEMO_UTIL_MACRO_H
+#ifndef UTIL_MACRO_H
+#define UTIL_MACRO_H
 
 #include <stdint.h>
 #include "minmax.h"
@@ -35,4 +35,4 @@
 #define lenof(_array) (sizeof(_array) / sizeof(typeof(_array[0])))
 void rgba2XGLColor(uint32_t rgba, XGLColor *gl_color);
 
-#endif //VULKAN_DEMO_UTIL_MACRO_H
+#endif //UTIL_MACRO_H

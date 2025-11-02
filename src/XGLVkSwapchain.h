@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkSwapchain.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_SWAPCHAIN_H
-#define VULKAN_DEMO_XGL_VK_SWAPCHAIN_H
+#ifndef XGL_VK_SWAPCHAIN_H
+#define XGL_VK_SWAPCHAIN_H
 
 #include "XGLVulkan.h"
 
@@ -47,4 +47,4 @@ XGLVkSwapchain *
 XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkSurface *surface, const XGLVkPipeline *pipeline, const Allocator *allocator);
 void XGLVkSwapchain_destroy(XGLVkSwapchain *swapchain);
 
-#endif //VULKAN_DEMO_XGL_VK_SWAPCHAIN_H
+#endif //XGL_VK_SWAPCHAIN_H

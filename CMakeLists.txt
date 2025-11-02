@@ -1,11 +1,35 @@
 cmake_minimum_required(VERSION 3.28)
-project(VulkanDemo C)
+project(xGL C)
 
 set(CMAKE_C_STANDARD 23)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/output)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/output)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/output)
+
+add_compile_definitions(XGL_WM_USING_GLFW)
+add_subdirectory(glfw)
+include_directories(glfw/include)
+
+if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
+    set(TARGET_PREFIX "")
+else ()
+    set(TARGET_PREFIX "xGL_")
+endif ()
+
+#add_compile_options("-O3" "-Os")
+add_compile_options("-funsigned-char")
+add_compile_options("-Wall" "-Wextra" "-Werror")
+if (WIN32)
+    add_compile_options("-Wno-format")
+endif ()
+if (ENABLE_TEST_COV)
+    add_compile_options("-fprofile-arcs" "-ftest-coverage")
+endif ()
+if (ENABLE_GPROF)
+    add_compile_options("-pg")
+    add_link_options("-pg")
+endif ()
 
 set(XGL_SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 set(XGL_SHADER_OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders)
@@ -52,22 +76,24 @@ else()
     message(STATUS "${XGL_DEFAULT_FRAG_SHADER} exists, skip to compile it.")
 endif()
 
-include_directories(meman)
-aux_source_directory(meman MEMAN_SRC)
-add_library(meman STATIC ${MEMAN_SRC})
-
 add_compile_definitions("XGL_MATH_DEBUG_PRINT")
+
+find_package(Vulkan REQUIRED)
+
+if (NOT TARGET meman)
+    include_directories(meman)
+    aux_source_directory(meman MEMAN_SRC)
+    add_library(meman STATIC ${MEMAN_SRC})
+    link_libraries(meman)
+endif ()
 
 add_subdirectory(xglm)
 include_directories(xglm/src)
 
-find_package(Vulkan REQUIRED)
-
-add_compile_definitions(XGL_WM_USING_GLFW)
-add_subdirectory(glfw)
-include_directories(glfw/include)
-
 include_directories(src)
-aux_source_directory(src SRC)
-add_executable(VulkanDemo main.c ${SRC})
-target_link_libraries(VulkanDemo PRIVATE xglm meman glfw Vulkan::Vulkan)
+aux_source_directory(src XGL_SRC)
+add_library(${TARGET_PREFIX}xgl ${XGL_SRC})
+target_link_libraries(${TARGET_PREFIX}xgl PRIVATE Vulkan::Vulkan)
+
+add_executable(VulkanDemo main.c)
+target_link_libraries(VulkanDemo PRIVATE xgl xglm meman glfw Vulkan::Vulkan)

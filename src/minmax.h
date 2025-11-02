@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: minmax.h
  * Creator: Yaokai Liu
@@ -25,12 +25,12 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_MINMAX_H
-#define VULKAN_DEMO_MINMAX_H
+#ifndef MINMAX_H
+#define MINMAX_H
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define minmax(a, b, c) min(max(a, min(b, c)), max(b, c))
 #define maxmin(a, b, c) max(min(a, max(b, c)), min(b, c))
 
-#endif //VULKAN_DEMO_MINMAX_H
+#endif //MINMAX_H

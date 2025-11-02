@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkPipeline.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_PIPELINE_H
-#define VULKAN_DEMO_XGL_VK_PIPELINE_H
+#ifndef XGL_VK_PIPELINE_H
+#define XGL_VK_PIPELINE_H
 
 #include "XGLVulkan.h"
 
@@ -59,15 +59,15 @@ typedef struct XGLVkPipeline {
 } XGLVkPipeline;
 
 VkResult composeShaderModules(XGLVkPipelineInfo *info,
-                              XGLVkShader *shaders, uint32_t shaderCount);
+                              const XGLVkShader *shaders, uint32_t shaderCount);
 VkResult composeVertexInputs(XGLVkPipelineInfo *info,
                              uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
                              uint32_t attributeCount, VkVertexInputAttributeDescription *attributes);
 VkResult composeSetLayouts(XGLVkPipelineInfo *info, uint32_t bindingCount, VkDescriptorSetLayoutBinding *bindings);
-void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack);
+void XGLVkPipelineInfo_release(XGLVkPipelineInfo *info);
 
 XGLVkPipeline *
 XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator);
 
 void XGLVkPipeline_destroy(XGLVkPipeline *pipeline);
-#endif //VULKAN_DEMO_XGL_VK_PIPELINE_H
+#endif //XGL_VK_PIPELINE_H

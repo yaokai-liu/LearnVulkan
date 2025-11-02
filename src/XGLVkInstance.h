@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkInstance.h
  * Creator: Yaokai Liu
@@ -25,13 +25,13 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_INSTANCE_H
-#define VULKAN_DEMO_XGL_VK_INSTANCE_H
+#ifndef XGL_VK_INSTANCE_H
+#define XGL_VK_INSTANCE_H
 
 #include "XGLVulkan.h"
 
 typedef struct XGLVkInstance {
-  XGLSoftware app, engine;
+  XGLSoftwareInfo app, engine;
   uint32_t  apiVersion;
   VkInstance handle;
   bool       enableValidationLayers;
@@ -41,11 +41,11 @@ typedef struct XGLVkInstance {
   const Allocator *allocator;
 } XGLVkInstance;
 
-XGLVkInstance *XGLVkInstance_new(const XGLSoftware *app, const XGLSoftware *engine, const Allocator *allocator);
+XGLVkInstance *XGLVkInstance_new(const XGLSoftwareInfo *app, const XGLSoftwareInfo *engine, const Allocator *allocator);
 void XGLVkInstance_destroy(XGLVkInstance *instance);
 const XGLVkPhysicalDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance);
 
 VkResult XGLVkInstance_verifyLayers(XGLVkInstance *instance, uint32_t layerCount, const char *layerNames[]);
 VkResult XGLVkInstance_verifyExtensions(XGLVkInstance *instance, uint32_t extensionCount, const char *extensionNames[]);
 
-#endif //VULKAN_DEMO_XGL_VK_INSTANCE_H
+#endif //XGL_VK_INSTANCE_H

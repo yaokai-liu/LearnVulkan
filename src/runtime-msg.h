@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: runtime-msg.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_RUNTIME_MSG_H
-#define VULKAN_DEMO_RUNTIME_MSG_H
+#ifndef RUNTIME_MSG_H
+#define RUNTIME_MSG_H
 
 #include <stdio.h>
 
@@ -35,4 +35,4 @@
 #define rt_warning(fmt, ...) fprintf(stderr, "[WARNING] " fmt "\n", ##__VA_ARGS__)
 #define rt_debug(fmt, ...)   fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
 
-#endif //VULKAN_DEMO_RUNTIME_MSG_H
+#endif //RUNTIME_MSG_H

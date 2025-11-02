@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkPipeline.c
  * Creator: Yaokai Liu
@@ -82,7 +82,7 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .flags = 0,
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
-      .polygonMode = VK_POLYGON_MODE_LINE,
+      .polygonMode = VK_POLYGON_MODE_FILL,
       .cullMode = VK_CULL_MODE_BACK_BIT,
       .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
       .depthBiasEnable = VK_FALSE,
@@ -102,7 +102,7 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .alphaToCoverageEnable = VK_FALSE,
       .alphaToOneEnable = VK_FALSE,
   };
-  VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo = {};
+  VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo[[maybe_unused]] = {};
   VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {
       .blendEnable = VK_FALSE,
       .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
@@ -226,7 +226,7 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
 }
 
 VkResult
-composeShaderModules(XGLVkPipelineInfo *info, XGLVkShader *shaders, uint32_t shaderCount) {
+composeShaderModules(XGLVkPipelineInfo *info, const XGLVkShader *shaders, uint32_t shaderCount) {
   if (info->device == VK_NULL_HANDLE || !info->allocator) { return ~VK_SUCCESS; }
   info->shaderModules = info->allocator->calloc(shaderCount, sizeof(VkShaderModule));
   info->shaderStages = info->allocator->calloc(shaderCount, sizeof(VkPipelineShaderStageCreateInfo));
@@ -287,33 +287,41 @@ VkResult composeSetLayouts(XGLVkPipelineInfo *info, uint32_t bindingCount, VkDes
   return result;
 }
 
-void XGLVkShaderCreatePack_destroy(XGLVkPipelineInfo *pack) {
-  if (pack->shaderModules) {
-    for (uint32_t i = 0; i < pack->shaderCount; i ++) {
-      if (pack->shaderModules[i] != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(pack->device->handle, pack->shaderModules[i], nullptr);
+void XGLVkPipelineInfo_release(XGLVkPipelineInfo *info) {
+  if (info->shaderModules) {
+    for (uint32_t i = 0; i < info->shaderCount; i ++) {
+      if (info->shaderModules[i] != VK_NULL_HANDLE) {
+        vkDestroyShaderModule(info->device->handle, info->shaderModules[i], nullptr);
       }
     }
-    pack->allocator->free(pack->shaderModules);
+    info->allocator->free(info->shaderModules);
+    info->shaderModules = nullptr;
   }
-  if (pack->shaderStages) {
-    pack->allocator->free(pack->shaderStages);
+  info->shaderCount = 0;
+  if (info->vertBindings) {
+    info->allocator->free(info->vertBindings);
+    info->vertBindings = nullptr;
   }
-  if (pack->vertBindings) {
-    pack->allocator->free(pack->vertBindings);
+  info->vertBindCount = 0;
+  if (info->vertAttributes) {
+    info->allocator->free(info->vertAttributes);
+    info->vertAttributes= nullptr;
   }
-  if (pack->vertAttributes) {
-    pack->allocator->free(pack->vertAttributes);
+  info->vertAttrCount = 0;
+  if (info->shaderStages) {
+    info->allocator->free(info->shaderStages);
+    info->shaderStages = nullptr;
   }
-  if (pack->descriptorSetLayouts) {
-    uint32_t count = Array_length(pack->descriptorSetLayouts);
-    VkDescriptorSetLayout *layouts = Array_first_real(pack->descriptorSetLayouts);
+  if (info->descriptorSetLayouts) {
+    uint32_t count = Array_length(info->descriptorSetLayouts);
+    VkDescriptorSetLayout *layouts = Array_first_real(info->descriptorSetLayouts);
     for (uint32_t i = 0; i < count; i ++) {
       if (layouts[i] != VK_NULL_HANDLE) {
-        vkDestroyDescriptorSetLayout(pack->device->handle, layouts[i], nullptr);
+        vkDestroyDescriptorSetLayout(info->device->handle, layouts[i], nullptr);
       }
     }
-    releasePrimeArray(pack->descriptorSetLayouts);
+    releasePrimeArray(info->descriptorSetLayouts);
+    info->descriptorSetLayouts = nullptr;
   }
 }
 
@@ -327,4 +335,5 @@ void XGLVkPipeline_destroy(XGLVkPipeline *pipeline) {
   if (pipeline->layout != VK_NULL_HANDLE) {
     vkDestroyPipelineLayout(pipeline->device->handle, pipeline->layout, nullptr);
   }
+  pipeline->allocator->free(pipeline);
 }

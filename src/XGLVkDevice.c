@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkDevice.c
  * Creator: Yaokai Liu
@@ -37,6 +37,8 @@ const char* REQUIRED_DEVICE_LAYER_NAMES[] = {
 };
 const char* REQUIRED_DEVICE_EXTENSION_NAMES[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
+    VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 };
 const uint32_t REQUIRED_DEVICE_LAYER_NAME_COUNT = lenof(REQUIRED_DEVICE_LAYER_NAMES);
 const uint32_t REQUIRED_DEVICE_EXTENSION_NAME_COUNT = lenof(REQUIRED_DEVICE_EXTENSION_NAMES);
@@ -157,6 +159,7 @@ XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *s
   XGLVkDevice *device = allocator->calloc(1, sizeof(XGLVkDevice));
   device->physical = physicalDevice;
   device->allocator = allocator;
+  device->surface = surface;
   device->handle = handle;
   device->queues = Array_new(sizeof(XGLVkQueue), -1, allocator);
   Array_append(device->queues, queues, TOTAL_QUEUE_TYPE_COUNT);
@@ -165,12 +168,21 @@ XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *s
 }
 
 void XGLVkDevice_destroy(XGLVkDevice *device) {
-  if (device->handle != VK_NULL_HANDLE) {
-    vkDestroyDevice(device->handle, nullptr);
+  if (device->descriptorPools) {
+    const uint32_t poolCount = Array_length(device->descriptorPools);
+    const VkDescriptorPool *pools = Array_first_real(device->descriptorPools);
+    for (uint32_t i = 0; i < poolCount; i++) {
+      vkDestroyDescriptorPool(device->handle, pools[i], nullptr);
+    }
+    releasePrimeArray(device->descriptorPools);
   }
   if (device->queues) {
     releasePrimeArray(device->queues);
   }
+  if (device->handle != VK_NULL_HANDLE) {
+    vkDestroyDevice(device->handle, nullptr);
+  }
+  device->allocator->free(device);
 }
 
 VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwapchainKHR *swapchains,
@@ -178,12 +190,12 @@ VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwap
   VkSubmitInfo submitInfo = {
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .pNext = nullptr,
-      .waitSemaphoreCount = renderInfo->waitSemCount,
+      .waitSemaphoreCount = renderInfo->presentSemCount,
       .pWaitSemaphores = renderInfo->presentSemaphores,
       .pWaitDstStageMask = renderInfo->waitStageFlags,
       .commandBufferCount = 1,
       .pCommandBuffers = &command,
-      .signalSemaphoreCount = renderInfo->signalSemCount,
+      .signalSemaphoreCount = renderInfo->submitSemCount,
       .pSignalSemaphores = renderInfo->submitSemaphores,
   };
   XGLVkQueue *graphicsQueue = Array_real_addr(device->queues, GRAPHICS_QUEUE_INDEX);
@@ -195,7 +207,7 @@ VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwap
   VkPresentInfoKHR presentInfo = {
       .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext = nullptr,
-      .waitSemaphoreCount = 1,
+      .waitSemaphoreCount = renderInfo->submitSemCount,
       .pWaitSemaphores = renderInfo->submitSemaphores,
       .swapchainCount = renderInfo->swapchainCount,
       .pSwapchains = swapchains,
@@ -215,7 +227,7 @@ XGLVkQueue *XGLVkDevice_getQueue(XGLVkDevice *device, uint32_t index) {
   return Array_real_addr(device->queues, index);
 }
 
-VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, XGLVkBufferCopyInfo *bufferCopyInfo) {
+VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, const XGLVkBufferCopyInfo *bufferCopyInfo) {
   XGLVkBufferInfo stagingBufferInfo = {
       .flags = 0, .size = 0, .pQueueFamilyIndices = nullptr, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       .sharingMode = VK_SHARING_MODE_EXCLUSIVE, .memoryOffset = 0, .queueFamilyIndexCount = 0,
@@ -270,4 +282,23 @@ VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *co
   vkFreeCommandBuffers(device->handle, commandPool->handle, 1, &transferCommand);
   XGLVkDeviceBufferGroup_destroy(stagingBufferGroup);
   return result;
+}
+
+const VkDescriptorPool *XGLVkDevice_allocDescriptorPool(XGLVkDevice *device, uint32_t maxSetCount,
+                                                        uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes) {
+  VkDescriptorPoolCreateInfo poolCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .pNext = nullptr, .flags = 0,
+      .maxSets = maxSetCount, .poolSizeCount = poolSizeCount, .pPoolSizes = poolSizes
+  };
+  VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+  VkResult result = vkCreateDescriptorPool(device->handle, &poolCreateInfo, nullptr, &descriptorPool);
+  if (result != VK_SUCCESS) {
+    rt_error("Failed to create descriptor pool");
+    return nullptr;
+  }
+  if (!device->descriptorPools) {
+    device->descriptorPools = Array_new(sizeof(VkDescriptorPool), -1, device->allocator);
+  }
+  Array_append(device->descriptorPools, &descriptorPool, 1);
+  return Array_last_real(device->descriptorPools);
 }

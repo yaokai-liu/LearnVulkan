@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: callback.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_CALLBACK_H
-#define VULKAN_DEMO_CALLBACK_H
+#ifndef CALLBACK_H
+#define CALLBACK_H
 
 #include "GLFW/glfw3.h"
 
@@ -38,4 +38,4 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     void* pUserData);
 
 
-#endif //VULKAN_DEMO_CALLBACK_H
+#endif //CALLBACK_H

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkInstance.c
  * Creator: Yaokai Liu
@@ -56,7 +56,7 @@ void XGLVkInstance_enumerateLayers(XGLVkInstance *instance);
 void XGLVkInstance_enumerateExtensions(XGLVkInstance *instance);
 void XGLVkInstance_enumeratePhysicalDevices(XGLVkInstance *instance);
 
-XGLVkInstance *XGLVkInstance_new(const XGLSoftware *app, const XGLSoftware *engine, const Allocator *allocator) {
+XGLVkInstance *XGLVkInstance_new(const XGLSoftwareInfo *app, const XGLSoftwareInfo *engine, const Allocator *allocator) {
   VkResult result;
   XGLVkInstance *instance = allocator->calloc(1, sizeof(XGLVkInstance));
   instance->enableValidationLayers = true;
@@ -291,4 +291,5 @@ void XGLVkInstance_destroy(XGLVkInstance *instance) {
   if (instance->handle != VK_NULL_HANDLE) {
     vkDestroyInstance(instance->handle, nullptr);
   }
+  instance->allocator->free(instance);
 }

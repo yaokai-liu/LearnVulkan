@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkCommandPool.c
  * Creator: Yaokai Liu
@@ -117,4 +117,8 @@ VkResult XGLVkCommand_endRecord(VkCommandBuffer command) {
   vkCmdEndRenderPass(command);
   VkResult result = vkEndCommandBuffer(command);
   return result;
+}
+
+void XGLVkCommand_adjustDevice(VkCommandBuffer command, const XGLVkDevice *device) {
+  vkCmdSetViewport(command, 0, 1, &device->surface->viewport);
 }

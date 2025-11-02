@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVulkan.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_VULKAN_INSTANCE_H
-#define VULKAN_DEMO_VULKAN_INSTANCE_H
+#ifndef XGL_VULKAN_H
+#define XGL_VULKAN_H
 
 #include <vulkan/vulkan.h>
 #include "allocator.h"
@@ -72,7 +72,7 @@ typedef struct XGLVkLayer {
 typedef struct XGLSoftware {
   const char *name;
   uint32_t version;
-} XGLSoftware;
+} XGLSoftwareInfo;
 
 typedef struct XGLVkBufferInfo {
   VkBufferCreateFlags    flags;
@@ -87,8 +87,8 @@ typedef struct XGLVkBufferInfo {
 typedef struct XGLVkRecordInfo {
   VkClearValue clearValue;
   uint32_t     imageIndex;
-  uint32_t     waitSemCount;
-  uint32_t     signalSemCount;
+  uint32_t     presentSemCount;
+  uint32_t     submitSemCount;
   uint32_t     swapchainCount;
   VkFence      waitFence;
   VkSemaphore *presentSemaphores;
@@ -105,6 +105,12 @@ typedef struct XGLVkBufferCopyInfo {
   uint32_t *dstOffsets;
 } XGLVkBufferCopyInfo;
 
+typedef struct XGLVkDescriptorPoolInfo {
+  Array *poolSizeArray; // Array<VkDescriptorPoolSize>
+  VkDescriptorPoolCreateFlags flags;
+  uint32_t maxSets;
+} XGLVkDescriptorPoolInfo;
+
 void XGLVkLayer_release(XGLVkLayer *layer, const Allocator *allocator);
 
 extern const uint32_t REQUIRED_DEVICE_EXTENSION_NAME_COUNT;
@@ -113,4 +119,4 @@ extern const char* REQUIRED_DEVICE_EXTENSION_NAMES[];
 extern const char* REQUIRED_DEVICE_LAYER_NAMES[];
 
 
-#endif //VULKAN_DEMO_VULKAN_INSTANCE_H
+#endif //XGL_VULKAN_H

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkDevice.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_DEVICE_H
-#define VULKAN_DEMO_XGL_VK_DEVICE_H
+#ifndef XGL_VK_DEVICE_H
+#define XGL_VK_DEVICE_H
 
 #include "XGLVulkan.h"
 
@@ -38,8 +38,10 @@ typedef struct XGLVkQueue {
 typedef struct XGLVkDevice {
   VkDevice handle;
   const Allocator *allocator;
+  const XGLVkSurface *surface;
   const XGLVkPhysicalDevice *physical;
   Array *queues; // Array<XGLVkQueue>
+  Array *descriptorPools; // Array<VkDescriptorPool>
 } XGLVkDevice;
 
 XGLVkDevice *XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator);
@@ -48,5 +50,8 @@ void XGLVkDevice_destroy(XGLVkDevice *device);
 VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwapchainKHR *swapchains,
                             const XGLVkRecordInfo *renderInfo);
 XGLVkQueue *XGLVkDevice_getQueue(XGLVkDevice *device, uint32_t index);
-VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, XGLVkBufferCopyInfo *bufferCopyInfo);
-#endif //VULKAN_DEMO_XGL_VK_DEVICE_H
+VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, const XGLVkBufferCopyInfo *bufferCopyInfo);
+
+const VkDescriptorPool *XGLVkDevice_allocDescriptorPool(XGLVkDevice *device, uint32_t maxSetCount,
+                                                        uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes);
+#endif //XGL_VK_DEVICE_H

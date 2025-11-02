@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkSurface.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_SURFACE_H
-#define VULKAN_DEMO_XGL_VK_SURFACE_H
+#ifndef XGL_VK_SURFACE_H
+#define XGL_VK_SURFACE_H
 
 #include "XGLVulkan.h"
 
@@ -50,4 +50,4 @@ XGLVkSurface *XGLVkSurface_new(const XGLVkPhysicalDevice *device, XGLWMWindow *w
 void XGLVkSurface_update(XGLVkSurface *surface);
 void XGLVkSurface_destroy(XGLVkSurface *surface);
 
-#endif //VULKAN_DEMO_XGL_VK_SURFACE_H
+#endif //XGL_VK_SURFACE_H

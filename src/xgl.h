@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: xgl.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_H
-#define VULKAN_DEMO_XGL_H
+#ifndef XGL_H
+#define XGL_H
 
 #include "XGLVulkan.h"
 #include "XGLVkInstance.h"
@@ -52,6 +52,23 @@
         M[2][0], M[2][1], M[2][2], M[2][3], \
         M[3][0], M[3][1], M[3][2], M[3][3]  \
 )
+#define printFMat2(M)     \
+        rt_debug(#M" =\n" \
+        "\t%f\t%f\n"      \
+        "\t%f\t%f\n"      \
+        M[0][0], M[0][1], \
+        M[1][0], M[1][1]  \
+)
+#define printFVec4(V)           \
+        rt_debug(#V" =\n"       \
+        "\t%f\t%f\t%f\t%f\n",   \
+        V[0], V[1], V[2], V[3]  \
+)
+#define printFVec2(V)     \
+        rt_debug(#V" =\n" \
+        "\t%f\t%f\n"      \
+        V[0], V[1]        \
+)
 #endif
 
 typedef FVec4 XGLColor;
@@ -67,4 +84,4 @@ typedef struct MVP {
   FMat4 proj [[gnu::aligned(16)]];
 } MVP;
 
-#endif //VULKAN_DEMO_XGL_H
+#endif //XGL_H

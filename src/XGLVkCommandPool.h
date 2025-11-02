@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  *
- * Project Name: VulkanDemo
+ * Project Name: xGL
  * Module Name: src
  * Filename: XGLVkCommandPool.h
  * Creator: Yaokai Liu
@@ -25,8 +25,8 @@
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef VULKAN_DEMO_XGL_VK_COMMAND_H
-#define VULKAN_DEMO_XGL_VK_COMMAND_H
+#ifndef XGL_VK_COMMAND_H
+#define XGL_VK_COMMAND_H
 
 #include "XGLVulkan.h"
 
@@ -42,8 +42,11 @@ XGLVkCommandPool *XGLVkCommandPool_new(XGLVkDevice *device, const Allocator *all
 void XGLVkCommandPool_destroy(XGLVkCommandPool *pool);
 VkCommandBuffer *XGLVkCommandPool_newCommand(XGLVkCommandPool *pool, uint32_t count);
 VkCommandBuffer XGLVkCommandPool_getCommand(XGLVkCommandPool *pool, uint32_t index);
+
 VkResult XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
                                   const XGLVkPipeline *pipeline, const XGLVkRecordInfo *recordInfo);
 VkResult XGLVkCommand_endRecord(VkCommandBuffer command);
+void XGLVkCommand_adjustDevice(VkCommandBuffer command, const XGLVkDevice *device);
 
-#endif //VULKAN_DEMO_XGL_VK_COMMAND_H
+
+#endif //XGL_VK_COMMAND_H
