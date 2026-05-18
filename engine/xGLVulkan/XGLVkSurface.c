@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkSurface.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -44,7 +44,7 @@ VkSurfaceFormatKHR SURFACE_FORMAT = { .format = VK_FORMAT_R8G8B8A8_SRGB, .colorS
 VkSurfaceFormatKHR SURFACE_FORMAT = { .format = VK_FORMAT_B8G8R8A8_SRGB, .colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR };
 #endif
 
-XGLVkSurface *XGLVkSurface_new(const XGLVkPhysicalDevice *device, XGLWMWindow *window, const XGLVkInstance *instance,
+XGLVkSurface *XGLVkSurface_new(const XGLVkPhyDevice *device, XGLWMWindow *window, const XGLVkInstance *instance,
                                const Allocator *allocator) {
   XGLVkSurface *surface = allocator->calloc(1, sizeof(XGLVkSurface));
   surface->allocator = allocator;
@@ -122,7 +122,7 @@ void XGLVkSurface_update(XGLVkSurface *surface) {
   VkSurfaceCapabilitiesKHR surfaceCapabilities = {};
   glfwGetFramebufferSize(surface->window, &width, &height);
 
-  const XGLVkPhysicalDevice *device = surface->device;
+  const XGLVkPhyDevice *device = surface->device;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->handle, surface->handle, &surfaceCapabilities);
   surface->extent.width = maxmin((uint32_t) width, surfaceCapabilities.maxImageExtent.width, surfaceCapabilities.minImageExtent.width);
   surface->extent.height = maxmin((uint32_t) height, surfaceCapabilities.maxImageExtent.height, surfaceCapabilities.minImageExtent.height);
@@ -132,7 +132,7 @@ void XGLVkSurface_update(XGLVkSurface *surface) {
   surface->viewport.y = 0.0f;
   surface->viewport.width = (float) surface->extent.width;
   surface->viewport.height = (float) surface->extent.height;
-  surface->viewport.minDepth = -1.0f;
+  surface->viewport.minDepth = 0.0f;
   surface->viewport.maxDepth =  1.0f;
   surface->scissor.offset.x = 0;
   surface->scissor.offset.y = 0;

@@ -18,19 +18,20 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: XGLVkCommandPool.c
+ * Module Name: xGLVulkan
+ * Filename: XGLVkCommand.c
  * Creator: Yaokai Liu
  * Create Date: 2025-05-01
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#include "XGLVkCommandPool.h"
+#include "XGLVkCommand.h"
 #include "XGLVkSwapchain.h"
 #include "XGLVkPipeline.h"
 #include "XGLVkSurface.h"
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
+#include "XGLVkRenderPass.h"
 
 XGLVkCommandPool *XGLVkCommandPool_new(XGLVkDevice *device, const Allocator *allocator) {
   XGLVkCommandPool *commandPool = allocator->calloc(1, sizeof(XGLVkCommandPool));
@@ -53,7 +54,7 @@ XGLVkCommandPool *XGLVkCommandPool_new(XGLVkDevice *device, const Allocator *all
   return commandPool;
 }
 
-VkCommandBuffer *XGLVkCommandPool_newCommand(XGLVkCommandPool *pool, uint32_t count) {
+VkCommandBuffer *XGLVkCommandPool_newCommand(const XGLVkCommandPool *pool, const uint32_t count) {
   VkCommandBufferAllocateInfo bufferInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .pNext = nullptr,
@@ -66,7 +67,7 @@ VkCommandBuffer *XGLVkCommandPool_newCommand(XGLVkCommandPool *pool, uint32_t co
   VkCommandBuffer *addendBuffers = Array_real_addr(pool->buffers, bufferCount);
   VkResult result = vkAllocateCommandBuffers(pool->device->handle, &bufferInfo, addendBuffers);
   if (result != VK_SUCCESS) {
-    rt_error("Failed to create command buffer");
+    rt_error("Failed to create command buffers");
     return nullptr;
   }
   return addendBuffers;
@@ -76,19 +77,20 @@ VkCommandBuffer XGLVkCommandPool_getCommand(XGLVkCommandPool *pool, uint32_t ind
   return *(VkCommandBuffer *) Array_real_addr(pool->buffers, index);
 }
 
-void XGLVkCommandPool_destroy(XGLVkCommandPool *commandPool) {
-  if (commandPool->buffers) {
-    releasePrimeArray(commandPool->buffers);
+void XGLVkCommandPool_destroy(XGLVkCommandPool *pool) {
+  if (pool->buffers) {
+    releasePrimeArray(pool->buffers);
   }
-  if (commandPool->handle != VK_NULL_HANDLE) {
-    vkDestroyCommandPool(commandPool->device->handle, commandPool->handle, nullptr);
+  if (pool->handle != VK_NULL_HANDLE) {
+    vkDestroyCommandPool(pool->device->handle, pool->handle, nullptr);
   }
-  commandPool->allocator->free(commandPool);
+  pool->allocator->free(pool);
 }
 
 VkResult
-XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkSurface *surface, const XGLVkSwapchain *swapchain,
+XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkRenderPass *renderPass, const XGLVkSwapchain *swapchain,
                          const XGLVkPipeline *pipeline, const XGLVkRecordInfo *recordInfo) {
+  const XGLVkSurface *surface = renderPass->surface;
   vkResetCommandBuffer(command, 0);
   VkCommandBufferBeginInfo commandBufferBeginInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -100,7 +102,7 @@ XGLVkCommand_startRecord(VkCommandBuffer command, const XGLVkSurface *surface, c
   VkRenderPassBeginInfo renderPassBeginInfo = {
       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .pNext = nullptr,
-      .renderPass = pipeline->renderPass,
+      .renderPass = renderPass->handle,
       .framebuffer = swapchain->framebuffers[recordInfo->imageIndex],
       .renderArea = {.offset = {0, 0}, .extent = surface->extent},
       .clearValueCount = 1,

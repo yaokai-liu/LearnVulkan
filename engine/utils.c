@@ -18,17 +18,18 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: XGLVulkan.c
+ * Module Name: xGLVulkan
+ * Filename: utils.c
  * Creator: Yaokai Liu
- * Create Date: 2025-04-29
+ * Create Date: 2025-05-06
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
+#include "utils.h"
 
-#include "XGLVulkan.h"
-#include "callback.h"
-
-void XGLVkLayer_release(XGLVkLayer *layer, const Allocator *allocator) {
-  allocator->free(layer->extensions);
+void rgba2XGLColor(uint32_t rgba, XGLColor *gl_color) {
+  (*gl_color)[0] = (float) ((rgba >> 0x18) & 255) / 255.0f;
+  (*gl_color)[1] = (float) ((rgba >> 0x10) & 255) / 255.0f;
+  (*gl_color)[2] = (float) ((rgba >> 0x08) & 255) / 255.0f;
+  (*gl_color)[3] = (float) ((rgba >> 0x00) & 255) / 255.0f;
 }

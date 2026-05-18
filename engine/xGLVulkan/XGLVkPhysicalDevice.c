@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XLGVkPhysicalDevice.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -35,11 +35,11 @@
 #include "XGLVkInstance.h"
 #include <string.h>
 
-void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device);
-void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhysicalDevice *device);
-void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device);
+void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhyDevice *device);
+void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhyDevice *device);
+void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhyDevice *device);
 
-bool XGLVkPhysicalDevice_suitable(const XGLVkPhysicalDevice *device) {
+bool XGLVkPhysicalDevice_suitable(const XGLVkPhyDevice *device) {
   if (device->properties.apiVersion < XGL_VK_API_VERSION) {
     rt_message("Device '%s' not supports required Vulkan API", device->properties.deviceName);
     return false;
@@ -55,14 +55,14 @@ bool XGLVkPhysicalDevice_suitable(const XGLVkPhysicalDevice *device) {
   return true;
 }
 
-void XGLVkPhysicalDevice_enumerate(XGLVkPhysicalDevice *device) {
+void XGLVkPhysicalDevice_enumerate(XGLVkPhyDevice *device) {
   XGLVkPhysicalDevice_enumerateLayers(device);
   XGLVkPhysicalDevice_enumerateExtensions(device);
   XGLVkPhysicalDevice_enumerateQueueFamilies(device);
   vkGetPhysicalDeviceMemoryProperties(device->handle, &device->memoryProperties);
 }
 
-void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device) {
+void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhyDevice *device) {
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device->handle, &queueFamilyCount, nullptr);
   if (!device->queueFamilies) {
@@ -73,7 +73,7 @@ void XGLVkPhysicalDevice_enumerateQueueFamilies(XGLVkPhysicalDevice *device) {
   vkGetPhysicalDeviceQueueFamilyProperties(device->handle, &queueFamilyCount, queueFamilies);
 }
 
-void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device) {
+void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhyDevice *device) {
   uint32_t layerCount = 0;
   vkEnumerateDeviceLayerProperties(device->handle, &layerCount, nullptr);
   VkLayerProperties *layerProps = device->allocator->calloc(layerCount, sizeof(VkLayerProperties));
@@ -93,7 +93,7 @@ void XGLVkPhysicalDevice_enumerateLayers(XGLVkPhysicalDevice *device) {
   device->allocator->free(layerProps);
 }
 
-void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhysicalDevice *device) {
+void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhyDevice *device) {
   uint32_t extensionCount = 0;
   vkEnumerateDeviceExtensionProperties(device->handle, nullptr, &extensionCount, nullptr);
   if (!device->extensions) {
@@ -104,7 +104,7 @@ void XGLVkPhysicalDevice_enumerateExtensions(XGLVkPhysicalDevice *device) {
   vkEnumerateDeviceExtensionProperties(device->handle, nullptr, &extensionCount, extensionProps);
 }
 
-VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhysicalDevice *device, uint32_t layerCount, const char *layerNames[]) {
+VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhyDevice *device, uint32_t layerCount, const char *layerNames[]) {
   VkResult result = VK_SUCCESS;
   uint32_t supportedCount = Array_length(device->layers);
   XGLVkLayer *layers = Array_first_real(device->layers);
@@ -122,7 +122,7 @@ VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhysicalDevice *device, uint32_t 
   return result;
 }
 
-VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhysicalDevice *device, uint32_t extensionCount, const char *extensionNames[]) {
+VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhyDevice *device, uint32_t extensionCount, const char *extensionNames[]) {
   VkResult result = VK_SUCCESS;
   uint32_t layerCount = Array_length(device->layers);
   XGLVkLayer *layers = Array_first_real(device->layers);
@@ -151,7 +151,7 @@ VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhysicalDevice *device, uint3
   return result;
 }
 
-VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device,
+VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhyDevice *device,
                                           XGLWMWindow *window,
                                           const XGLVkInstance *instance) {
   VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -179,7 +179,7 @@ VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device,
   return ~VK_SUCCESS;
 }
 
-void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *) {
+void XGLVkPhysicalDevice_release(XGLVkPhyDevice *device, const Allocator *) {
   if (device->queueFamilies) {
     releasePrimeArray(device->queueFamilies);
   }
@@ -189,7 +189,7 @@ void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *)
   }
 }
 
-uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device,
+uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhyDevice *device,
                                          const VkMemoryPropertyFlags property,
                                          const uint32_t typeFilter) {
   auto props = device->memoryProperties;

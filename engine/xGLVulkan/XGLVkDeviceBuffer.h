@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkDeviceBuffer.h
  * Creator: Yaokai Liu
  * Create Date: 2025-05-02
@@ -37,18 +37,20 @@ typedef struct XGLVkDeviceBufferGroup {
   VkMemoryPropertyFlags property;
   const Allocator *allocator;
   const XGLVkDevice *device;
-  uint32_t  count;
-  VkBuffer *buffers;
+  Array *buffers; // Array<VkBuffer>
   XGLVkDeviceMemoryMapping *mapping;
 } XGLVkDeviceBufferGroup;
 
 XGLVkDeviceBufferGroup *
-XGLVkDeviceBufferGroup_new(const XGLVkDevice *device, uint32_t bufferCount, const XGLVkBufferInfo *bufferInfos,
-                           VkMemoryPropertyFlags memoryProperty, const Allocator *allocator);
+XGLVkDeviceBufferGroup_new(const XGLVkDevice *device, const Allocator *allocator);
+VkResult XGLVkDeviceBufferGroup_allocBuffers(XGLVkDeviceBufferGroup *group, const XGLVkBufferInfo *bufferInfos,
+                                             uint32_t bufferInfoCount, VkMemoryPropertyFlags memoryProperty);
 void XGLVkDeviceBufferGroup_destroy(XGLVkDeviceBufferGroup *group);
 
 void *XGLVkDeviceBufferGroup_mapping(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size);
 
 void XGLVkDeviceMemory_copyData(XGLVkDeviceBufferGroup *group, uint32_t offset, uint32_t size, const void *data);
 
+VkResult XGLVkDeviceBuffer_cmdTransBufferData(const XGLVkDeviceBufferGroup *dstGroup,
+                                              const XGLVkBufferTransInfo *transInfos, uint32_t transInfoCount);
 #endif //XGL_VK_BUFFER_H

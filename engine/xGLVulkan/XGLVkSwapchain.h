@@ -18,24 +18,34 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: callback.h
+ * Module Name: xGLVulkan
+ * Filename: XGLVkSwapchain.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef CALLBACK_H
-#define CALLBACK_H
+#ifndef XGL_VK_SWAPCHAIN_H
+#define XGL_VK_SWAPCHAIN_H
 
-#include "GLFW/glfw3.h"
+#include "XGLVulkan.h"
 
-void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData);
+typedef struct XGLVkSwapchain {
+  VkSwapchainKHR handle;
+  VkSwapchainKHR oldHandle;
+  uint32_t swapImageCount;
+  uint32_t swapImageIndex;
+  const XGLVkDevice *device;
+  const Allocator *allocator;
+  const XGLVkSurface *surface;
+  const XGLVkRenderPass *renderPass;
+  const XGLVkPipeline *pipeline;
+  VkFramebuffer *framebuffers;
+  VkImageView *swapImageViews;
+} XGLVkSwapchain;
 
+XGLVkSwapchain *
+XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkRenderPass *renderPass, const XGLVkPipeline *pipeline, const Allocator *allocator);
+void XGLVkSwapchain_destroy(XGLVkSwapchain *swapchain);
 
-#endif //CALLBACK_H
+#endif //XGL_VK_SWAPCHAIN_H

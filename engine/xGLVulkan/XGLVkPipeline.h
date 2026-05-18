@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkPipeline.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -35,7 +35,7 @@ typedef struct XGLVkShader {
   VkShaderStageFlagBits stage;
   const char *entryPoint;
   const uint32_t *code;
-} XGLVkShader;
+} XGLVkShaderInfo;
 
 typedef struct XGLVkPipelineInfo {
   uint32_t shaderCount;
@@ -54,20 +54,20 @@ typedef struct XGLVkPipeline {
   VkPipeline handle;
   const Allocator *allocator;
   const XGLVkDevice *device;
+  const XGLVkRenderPass *renderPass;
   VkPipelineLayout layout;
-  VkRenderPass renderPass;
 } XGLVkPipeline;
 
 VkResult composeShaderModules(XGLVkPipelineInfo *info,
-                              const XGLVkShader *shaders, uint32_t shaderCount);
+                              const XGLVkShaderInfo *shaders, uint32_t shaderCount);
 VkResult composeVertexInputs(XGLVkPipelineInfo *info,
-                             uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
-                             uint32_t attributeCount, VkVertexInputAttributeDescription *attributes);
+                             uint32_t bindingCount, const VkVertexInputBindingDescription *bindings,
+                             uint32_t attributeCount, const VkVertexInputAttributeDescription *attributes);
 VkResult composeSetLayouts(XGLVkPipelineInfo *info, uint32_t bindingCount, VkDescriptorSetLayoutBinding *bindings);
 void XGLVkPipelineInfo_release(XGLVkPipelineInfo *info);
 
 XGLVkPipeline *
-XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator);
+XGLVkPipeline_new(const XGLVkDevice *device, const XGLVkRenderPass *renderPass, const XGLVkPipelineInfo *info, const Allocator *allocator);
 
 void XGLVkPipeline_destroy(XGLVkPipeline *pipeline);
 #endif //XGL_VK_PIPELINE_H

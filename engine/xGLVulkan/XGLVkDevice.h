@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkDevice.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -36,22 +36,26 @@ typedef struct XGLVkQueue {
 } XGLVkQueue;
 
 typedef struct XGLVkDevice {
-  VkDevice handle;
-  const Allocator *allocator;
+  VkDevice            handle;
+  const Allocator *   allocator;
   const XGLVkSurface *surface;
-  const XGLVkPhysicalDevice *physical;
-  Array *queues; // Array<XGLVkQueue>
-  Array *descriptorPools; // Array<VkDescriptorPool>
+  const XGLVkPhyDevice *
+                      physical;
+  XGLVkCommandPool   *cmdPool;
+  XGLVkDescriptorPool*descPool;
+  Array*              textures; // Array<VkImageView>
+  Array*              samplers; // Array<VkSampler>
+  VkBuffer            ubo;
+  VkDeviceMemory      uboMem;
+  VkCommandBuffer     transCmd;
+  Array *             queues; // Array<XGLVkQueue>
 } XGLVkDevice;
 
-XGLVkDevice *XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator);
+XGLVkDevice *XGLVkDevice_new(const XGLVkPhyDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator);
 void XGLVkDevice_destroy(XGLVkDevice *device);
 
 VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwapchainKHR *swapchains,
                             const XGLVkRecordInfo *renderInfo);
-XGLVkQueue *XGLVkDevice_getQueue(XGLVkDevice *device, uint32_t index);
-VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, const XGLVkBufferCopyInfo *bufferCopyInfo);
+XGLVkQueue *XGLVkDevice_getQueue(const XGLVkDevice *device, uint32_t index);
 
-const VkDescriptorPool *XGLVkDevice_allocDescriptorPool(XGLVkDevice *device, uint32_t maxSetCount,
-                                                        uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes);
 #endif //XGL_VK_DEVICE_H

@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XLGVkPhysicalDevice.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -30,7 +30,7 @@
 
 #include "XGLVulkan.h"
 
-typedef struct XGLVkPhysicalDevice {
+typedef struct XGLVkPhyDevice {
   VkPhysicalDevice handle;
   const Allocator *allocator;
   VkPhysicalDeviceProperties properties;
@@ -39,19 +39,19 @@ typedef struct XGLVkPhysicalDevice {
   Array *extensions; // Array<VkExtensionProperties>
   Array *queueFamilies; // Array<VkQueueFamilyProperties>
   VkPhysicalDeviceMemoryProperties memoryProperties;
-} XGLVkPhysicalDevice;
+} XGLVkPhyDevice;
 
-void XGLVkPhysicalDevice_enumerate(XGLVkPhysicalDevice *device);
+void XGLVkPhysicalDevice_enumerate(XGLVkPhyDevice *device);
 
-bool XGLVkPhysicalDevice_suitable(const XGLVkPhysicalDevice *device);
-VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhysicalDevice *device, uint32_t layerCount, const char *layerNames[]);
-VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhysicalDevice *device, uint32_t extensionCount, const char *extensionNames[]);
-VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhysicalDevice *device, XGLWMWindow *window,
+bool XGLVkPhysicalDevice_suitable(const XGLVkPhyDevice *device);
+VkResult XGLVkPhysicalDevice_verifyLayers(XGLVkPhyDevice *device, uint32_t layerCount, const char *layerNames[]);
+VkResult XGLVkPhysicalDevice_verifyExtensions(XGLVkPhyDevice *device, uint32_t extensionCount, const char *extensionNames[]);
+VkResult XGLVkPhysicalDevice_detectWindow(const XGLVkPhyDevice *device, XGLWMWindow *window,
                                           const XGLVkInstance *instance);
 
-void XGLVkPhysicalDevice_release(XGLVkPhysicalDevice *device, const Allocator *allocator);
+void XGLVkPhysicalDevice_release(XGLVkPhyDevice *device, const Allocator *allocator);
 
-uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhysicalDevice *device, VkMemoryPropertyFlags property,
+uint32_t XGLVkPhysicalDevice_findMemType(const XGLVkPhyDevice *device, VkMemoryPropertyFlags property,
                                          uint32_t typeFilter);
 
 #endif //XGL_VK_PHYSICAL_DEVICE_H

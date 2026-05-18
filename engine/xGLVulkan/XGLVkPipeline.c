@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkPipeline.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -30,15 +30,11 @@
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
 #include "utils.h"
+#include "XGLVkRenderPass.h"
 
-XGLVkPipeline *
-XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurface *surface, const Allocator *allocator) {
+XGLVkPipeline * XGLVkPipeline_new(const XGLVkDevice *device, const XGLVkRenderPass *renderPass,
+                                  const XGLVkPipelineInfo *info, const Allocator *allocator) {
   if (!info->shaderCount) { return nullptr; }
-
-  XGLVkPipeline *pipeline = allocator->calloc(1, sizeof(XGLVkPipeline));
-  pipeline->allocator = allocator;
-  pipeline->device = device;
-
   VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       .pNext = nullptr,
@@ -83,7 +79,7 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
       .polygonMode = VK_POLYGON_MODE_FILL,
-      .cullMode = VK_CULL_MODE_BACK_BIT,
+      .cullMode = VK_CULL_MODE_FRONT_BIT,
       .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
       .depthBiasEnable = VK_FALSE,
       .depthBiasConstantFactor = 0,
@@ -137,63 +133,10 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .pushConstantRangeCount = 0,
       .pPushConstantRanges = nullptr,
   };
-  VkResult result = vkCreatePipelineLayout(device->handle, &pipelineLayoutCreateInfo, nullptr, &pipeline->layout);
+  VkPipelineLayout layout = VK_NULL_HANDLE;
+  VkResult result = vkCreatePipelineLayout(device->handle, &pipelineLayoutCreateInfo, nullptr, &layout);
   if (result != VK_SUCCESS) {
     rt_error("Failed to create pipeline layout");
-    XGLVkPipeline_destroy(pipeline);
-    return nullptr;
-  }
-  VkAttachmentDescription colorAttachmentDescription = {
-      .flags = 0,
-      .format = surface->format.format,
-      .samples = VK_SAMPLE_COUNT_1_BIT,
-      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-      .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-      .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-  };
-  VkAttachmentReference colorAttachmentReference = {
-      .attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-  };
-
-  VkSubpassDescription subpassDescription = {
-      .flags = 0,
-      .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-      .inputAttachmentCount = 0,
-      .pInputAttachments = nullptr,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &colorAttachmentReference,
-      .pResolveAttachments = nullptr,
-      .pDepthStencilAttachment = nullptr,
-      .preserveAttachmentCount = 0,
-      .pPreserveAttachments = nullptr,
-  };
-  VkSubpassDependency subpassDependency = {
-      .srcSubpass = VK_SUBPASS_EXTERNAL,
-      .dstSubpass = 0,
-      .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-      .srcAccessMask = 0,
-      .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-      .dependencyFlags = 0,
-  };
-  VkRenderPassCreateInfo renderPassCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
-      .attachmentCount = 1,
-      .pAttachments = &colorAttachmentDescription,
-      .subpassCount = 1,
-      .pSubpasses = &subpassDescription,
-      .dependencyCount = 1,
-      .pDependencies = &subpassDependency,
-  };
-  result = vkCreateRenderPass(device->handle, &renderPassCreateInfo, nullptr, &pipeline->renderPass);
-  if (result != VK_SUCCESS) {
-    rt_error("Failed to create render pass");
-    XGLVkPipeline_destroy(pipeline);
     return nullptr;
   }
   VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {
@@ -211,22 +154,29 @@ XGLVkPipeline_new(XGLVkDevice *device, XGLVkPipelineInfo *info, const XGLVkSurfa
       .pDepthStencilState = nullptr,
       .pColorBlendState = &pipelineColorBlendStateCreateInfo,
       .pDynamicState = &pipelineDynamicStateCreateInfo,
-      .layout = pipeline->layout,
-      .renderPass = pipeline->renderPass,
+      .layout = layout,
+      .renderPass = renderPass->handle,
       .subpass = 0,
       .basePipelineHandle = VK_NULL_HANDLE,
       .basePipelineIndex = -1,
   };
-  result = vkCreateGraphicsPipelines(device->handle, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &pipeline->handle);
+  VkPipeline handle = VK_NULL_HANDLE;
+  result = vkCreateGraphicsPipelines(device->handle, VK_NULL_HANDLE, 1, &graphicsPipelineCreateInfo, nullptr, &handle);
   if (result != VK_SUCCESS) {
     rt_error("Failed to create graphics pipelines");
-    XGLVkPipeline_destroy(pipeline);
+    return nullptr;
   }
+  XGLVkPipeline *pipeline = allocator->calloc(1, sizeof(XGLVkPipeline));
+  pipeline->allocator = allocator;
+  pipeline->renderPass = renderPass;
+  pipeline->device = device;
+  pipeline->handle = handle;
+  pipeline->layout = layout;
   return pipeline;
 }
 
 VkResult
-composeShaderModules(XGLVkPipelineInfo *info, const XGLVkShader *shaders, uint32_t shaderCount) {
+composeShaderModules(XGLVkPipelineInfo *info, const XGLVkShaderInfo *shaders, uint32_t shaderCount) {
   if (info->device == VK_NULL_HANDLE || !info->allocator) { return ~VK_SUCCESS; }
   info->shaderModules = info->allocator->calloc(shaderCount, sizeof(VkShaderModule));
   info->shaderStages = info->allocator->calloc(shaderCount, sizeof(VkPipelineShaderStageCreateInfo));
@@ -261,8 +211,8 @@ composeShaderModules(XGLVkPipelineInfo *info, const XGLVkShader *shaders, uint32
 }
 
 VkResult composeVertexInputs(XGLVkPipelineInfo *info,
-         uint32_t bindingCount, VkVertexInputBindingDescription *bindings,
-         uint32_t attributeCount, VkVertexInputAttributeDescription *attributes) {
+         uint32_t bindingCount, const VkVertexInputBindingDescription *bindings,
+         uint32_t attributeCount, const VkVertexInputAttributeDescription *attributes) {
   info->vertBindCount = bindingCount;
   info->vertAttrCount = attributeCount;
   info->vertBindings = info->allocator->calloc(bindingCount, sizeof(VkVertexInputBindingDescription));
@@ -328,9 +278,6 @@ void XGLVkPipelineInfo_release(XGLVkPipelineInfo *info) {
 void XGLVkPipeline_destroy(XGLVkPipeline *pipeline) {
   if (pipeline->handle != VK_NULL_HANDLE) {
     vkDestroyPipeline(pipeline->device->handle, pipeline->handle, nullptr);
-  }
-  if (pipeline->renderPass != VK_NULL_HANDLE) {
-    vkDestroyRenderPass(pipeline->device->handle, pipeline->renderPass, nullptr);
   }
   if (pipeline->layout != VK_NULL_HANDLE) {
     vkDestroyPipelineLayout(pipeline->device->handle, pipeline->layout, nullptr);

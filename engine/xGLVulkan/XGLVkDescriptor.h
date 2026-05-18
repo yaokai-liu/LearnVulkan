@@ -18,33 +18,27 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: XGLVkSwapchain.h
+ * Module Name: xGLVulkan
+ * Filename: XGLVkDescriptor.h
  * Creator: Yaokai Liu
- * Create Date: 2025-04-30
+ * Create Date: 2025-05-08
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef XGL_VK_SWAPCHAIN_H
-#define XGL_VK_SWAPCHAIN_H
+#ifndef XGL_VK_DESCRIPTOR_H
+#define XGL_VK_DESCRIPTOR_H
 
 #include "XGLVulkan.h"
 
-typedef struct XGLVkSwapchain {
-  VkSwapchainKHR handle;
-  VkSwapchainKHR oldHandle;
-  uint32_t swapImageCount;
-  uint32_t currentIndex;
+typedef struct XGLVkDescriptorPool {
+  VkDescriptorPool handle;
   const XGLVkDevice *device;
   const Allocator *allocator;
-  const XGLVkSurface *surface;
-  const XGLVkPipeline *pipeline;
-  VkFramebuffer *framebuffers;
-  VkImageView *swapImageViews;
-} XGLVkSwapchain;
+  Array *sets; // Array<VkDescriptorSet>
+} XGLVkDescriptorPool;
 
-XGLVkSwapchain *
-XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkSurface *surface, const XGLVkPipeline *pipeline, const Allocator *allocator);
-void XGLVkSwapchain_destroy(XGLVkSwapchain *swapchain);
+XGLVkDescriptorPool *XGLVkDescriptorPool_new(const XGLVkDevice *device, const Allocator *allocator);
+void XGLVkDescriptorPool_destroy(XGLVkDescriptorPool *pool);
 
-#endif //XGL_VK_SWAPCHAIN_H
+
+#endif //XGL_VK_DESCRIPTOR_H

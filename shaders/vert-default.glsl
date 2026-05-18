@@ -13,6 +13,8 @@ layout(location = 0) out vec4 fragColor;
 
 void main() {
   gl_Position = mvp.proj * mvp.view * mvp.model * coord;
+  gl_Position.y = -gl_Position.y;
+  gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 //  gl_Position = coord;
   fragColor = color;
 }

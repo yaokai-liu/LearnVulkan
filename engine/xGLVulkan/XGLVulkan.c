@@ -18,21 +18,17 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: runtime-msg.h
+ * Module Name: xGLVulkan
+ * Filename: XGLVulkan.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-29
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef RUNTIME_MSG_H
-#define RUNTIME_MSG_H
 
-#include <stdio.h>
+#include "XGLVulkan.h"
+#include "callback.h"
 
-#define rt_error(fmt, ...)   fprintf(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__)
-#define rt_message(fmt, ...) fprintf(stdout, "[INFO] " fmt "\n", ##__VA_ARGS__)
-#define rt_warning(fmt, ...) fprintf(stderr, "[WARNING] " fmt "\n", ##__VA_ARGS__)
-#define rt_debug(fmt, ...)   fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
-
-#endif //RUNTIME_MSG_H
+void XGLVkLayer_release(XGLVkLayer *layer, const Allocator *allocator) {
+  allocator->free(layer->extensions);
+}

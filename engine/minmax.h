@@ -18,21 +18,19 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: util-macro.h
+ * Module Name: xGLVulkan
+ * Filename: minmax.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef UTIL_MACRO_H
-#define UTIL_MACRO_H
+#ifndef MINMAX_H
+#define MINMAX_H
 
-#include <stdint.h>
-#include "minmax.h"
-#include "xgl.h"
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define minmax(a, b, c) min(max(a, min(b, c)), max(b, c))
+#define maxmin(a, b, c) max(min(a, max(b, c)), min(b, c))
 
-#define lenof(_array) (sizeof(_array) / sizeof(typeof(_array[0])))
-void rgba2XGLColor(uint32_t rgba, XGLColor *gl_color);
-
-#endif //UTIL_MACRO_H
+#endif //MINMAX_H

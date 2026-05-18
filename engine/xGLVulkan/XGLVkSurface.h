@@ -18,18 +18,36 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: utils.c
+ * Module Name: xGLVulkan
+ * Filename: XGLVkSurface.h
  * Creator: Yaokai Liu
- * Create Date: 2025-05-06
+ * Create Date: 2025-04-30
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#include "utils.h"
+#ifndef XGL_VK_SURFACE_H
+#define XGL_VK_SURFACE_H
 
-void rgba2XGLColor(uint32_t rgba, XGLColor *gl_color) {
-  (*gl_color)[0] = (float) ((rgba >> 0x18) & 255) / 255.0f;
-  (*gl_color)[1] = (float) ((rgba >> 0x10) & 255) / 255.0f;
-  (*gl_color)[2] = (float) ((rgba >> 0x08) & 255) / 255.0f;
-  (*gl_color)[3] = (float) ((rgba >> 0x00) & 255) / 255.0f;
-}
+#include "XGLVulkan.h"
+
+typedef struct XGLVkSurface {
+  VkSurfaceKHR handle;
+  VkViewport viewport;
+  VkRect2D scissor;
+  VkExtent2D extent;
+  VkSurfaceFormatKHR format;
+  XGLWMWindow *window;
+  const Allocator *allocator;
+  const XGLVkInstance *instance;
+  const XGLVkPhyDevice *device;
+  VkSurfaceTransformFlagsKHR transform;
+  VkPresentModeKHR presentMode;
+  uint32_t swapImageCount;
+} XGLVkSurface;
+
+XGLVkSurface *XGLVkSurface_new(const XGLVkPhyDevice *device, XGLWMWindow *window, const XGLVkInstance *instance,
+                               const Allocator *allocator);
+void XGLVkSurface_update(XGLVkSurface *surface);
+void XGLVkSurface_destroy(XGLVkSurface *surface);
+
+#endif //XGL_VK_SURFACE_H

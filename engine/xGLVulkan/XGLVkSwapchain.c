@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkSwapchain.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -30,11 +30,13 @@
 #include "XGLVkSurface.h"
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
+#include "XGLVkRenderPass.h"
 
 XGLVkSwapchain *
-XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkSurface *surface, const XGLVkPipeline *pipeline, const Allocator *allocator) {
-  uint32_t queueCount = Array_length(device->queues);
-  XGLVkQueue *queues = Array_first_real(device->queues);
+XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkRenderPass *renderPass, const XGLVkPipeline *pipeline, const Allocator *allocator) {
+  const XGLVkSurface *surface = renderPass->surface;
+  const uint32_t queueCount = Array_length(device->queues);
+  const XGLVkQueue *queues = Array_first_real(device->queues);
   uint32_t *queueIndices = allocator->calloc(queueCount, sizeof(uint32_t));
   for (uint32_t i = 0; i < queueCount; i++) {
     queueIndices[i] = queues[i].index;
@@ -110,7 +112,7 @@ XGLVkSwapchain_new(const XGLVkDevice *device, const XGLVkSurface *surface, const
       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
-      .renderPass = pipeline->renderPass,
+      .renderPass = renderPass->handle,
       .attachmentCount = 1,
       .pAttachments = nullptr,
       .width = surface->extent.width,

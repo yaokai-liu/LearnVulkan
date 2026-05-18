@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVulkan.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-29
@@ -52,11 +52,13 @@
   #error "Please implement other window manager compatibility functions."
 #endif
 typedef struct XGLVkInstance XGLVkInstance;
-typedef struct XGLVkPhysicalDevice XGLVkPhysicalDevice;
+typedef struct XGLVkPhyDevice XGLVkPhyDevice;
 typedef struct XGLVkSurface XGLVkSurface;
 typedef struct XGLVkDevice XGLVkDevice;
 typedef struct XGLVkQueue XGLVkQueue;
 typedef struct XGLVkCommandPool XGLVkCommandPool;
+typedef struct XGLVkDescriptorPool XGLVkDescriptorPool;
+typedef struct XGLVkRenderPass XGLVkRenderPass;
 typedef struct XGLVkPipeline XGLVkPipeline;
 typedef struct XGLVkSwapchain XGLVkSwapchain;
 typedef struct XGLVkSemaphoreGroup XGLVkSemaphoreGroup;
@@ -97,13 +99,11 @@ typedef struct XGLVkRecordInfo {
 } XGLVkRecordInfo;
 
 typedef struct XGLVkBufferCopyInfo {
-  uint32_t  count;
-  bool      sameDst;
-  VkBuffer *dstBuffers;
-  const void **datas;
-  const uint32_t *sizes;
-  uint32_t *dstOffsets;
-} XGLVkBufferCopyInfo;
+  uint32_t dstOffset;
+  uint32_t dstBufferIndex;
+  uint32_t size;
+  const void *data;
+} XGLVkBufferTransInfo;
 
 typedef struct XGLVkDescriptorPoolInfo {
   Array *poolSizeArray; // Array<VkDescriptorPoolSize>

@@ -18,14 +18,14 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: XGLVkSync.c
+ * Module Name: xGLVulkan
+ * Filename: XGLVkThreadSync.c
  * Creator: Yaokai Liu
  * Create Date: 2025-05-01
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#include "XGLVkSync.h"
+#include "XGLVkThreadSync.h"
 #include "XGLVkDevice.h"
 #include "runtime-msg.h"
 
@@ -39,12 +39,11 @@ XGLVkSemaphoreGroup *XGLVkSemaphoreGroup_new(const XGLVkDevice *device, const Vk
   XGLVkSemaphoreGroup *group = allocator->calloc(1, sizeof(XGLVkSemaphoreGroup));
   group->allocator = allocator;
   group->device = device;
-  group->count = count;
 
   group->semaphores = allocator->calloc(count, sizeof(XGLVkSemaphoreGroup));
-  for (uint32_t i = 0; i < count; i ++) {
-    if (flags) { info.flags = flags[i]; }
-    VkResult result = vkCreateSemaphore(device->handle, &info, nullptr, &group->semaphores[i]);
+  for (group->count = 0; group->count < count; group->count ++) {
+    if (flags) { info.flags = flags[group->count]; }
+    const VkResult result = vkCreateSemaphore(device->handle, &info, nullptr, &group->semaphores[group->count]);
     if (result != VK_SUCCESS) {
       rt_error("Failed to create semaphore group");
       XGLVkSemaphoreGroup_destroy(group);
@@ -70,17 +69,15 @@ XGLVkFenceGroup *XGLVkFenceGroup_new(const XGLVkDevice *device, const VkFenceCre
                                      uint32_t count, const Allocator *allocator) {
   VkFenceCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-      .pNext = nullptr, .flags = 0,
+      .pNext = nullptr, .flags = VK_FENCE_CREATE_SIGNALED_BIT,
   };
   XGLVkFenceGroup *group = allocator->calloc(1, sizeof(XGLVkFenceGroup));
   group->allocator = allocator;
   group->device = device;
-  group->count = count;
-
   group->fences = allocator->calloc(count, sizeof(XGLVkFenceGroup));
-  for (uint32_t i = 0; i < count; i ++) {
-    if (flags) { info.flags = flags[i]; }
-    VkResult result = vkCreateFence(device->handle, &info, nullptr, &group->fences[i]);
+  for (group->count = 0; group->count < count; group->count ++) {
+    if (flags) { info.flags = flags[group->count]; }
+    VkResult result = vkCreateFence(device->handle, &info, nullptr, &group->fences[group->count]);
     if (result != VK_SUCCESS) {
       rt_error("Failed to create fence group");
       XGLVkFenceGroup_destroy(group);

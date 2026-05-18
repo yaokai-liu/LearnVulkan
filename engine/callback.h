@@ -18,36 +18,24 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: XGLVkSurface.h
+ * Module Name: xGLVulkan
+ * Filename: callback.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef XGL_VK_SURFACE_H
-#define XGL_VK_SURFACE_H
+#ifndef CALLBACK_H
+#define CALLBACK_H
 
-#include "XGLVulkan.h"
+#include "GLFW/glfw3.h"
 
-typedef struct XGLVkSurface {
-  VkSurfaceKHR handle;
-  VkViewport viewport;
-  VkRect2D scissor;
-  VkExtent2D extent;
-  VkSurfaceFormatKHR format;
-  XGLWMWindow *window;
-  const Allocator *allocator;
-  const XGLVkInstance *instance;
-  const XGLVkPhysicalDevice *device;
-  VkSurfaceTransformFlagsKHR transform;
-  VkPresentModeKHR presentMode;
-  uint32_t swapImageCount;
-} XGLVkSurface;
+void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData);
 
-XGLVkSurface *XGLVkSurface_new(const XGLVkPhysicalDevice *device, XGLWMWindow *window, const XGLVkInstance *instance,
-                               const Allocator *allocator);
-void XGLVkSurface_update(XGLVkSurface *surface);
-void XGLVkSurface_destroy(XGLVkSurface *surface);
 
-#endif //XGL_VK_SURFACE_H
+#endif //CALLBACK_H

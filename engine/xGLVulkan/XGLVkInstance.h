@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkInstance.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -36,14 +36,14 @@ typedef struct XGLVkInstance {
   VkInstance handle;
   bool       enableValidationLayers;
   Array *layers; // Array<XGLVkLayer>
-  Array *devices; // Array<XGLVkPhysicalDevice>
+  Array *devices; // Array<XGLVkPhyDevice>
   Array *extensions; // Array<VkExtensionProperties>
   const Allocator *allocator;
 } XGLVkInstance;
 
 XGLVkInstance *XGLVkInstance_new(const XGLSoftwareInfo *app, const XGLSoftwareInfo *engine, const Allocator *allocator);
 void XGLVkInstance_destroy(XGLVkInstance *instance);
-const XGLVkPhysicalDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance);
+const XGLVkPhyDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance);
 
 VkResult XGLVkInstance_verifyLayers(XGLVkInstance *instance, uint32_t layerCount, const char *layerNames[]);
 VkResult XGLVkInstance_verifyExtensions(XGLVkInstance *instance, uint32_t extensionCount, const char *extensionNames[]);

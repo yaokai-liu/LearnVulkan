@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkDevice.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -30,21 +30,20 @@
 #include "XGLVkSurface.h"
 #include "runtime-msg.h"
 #include "utils.h"
-#include "XGLVkDeviceBuffer.h"
-#include "XGLVkCommandPool.h"
+#include "XGLVkCommand.h"
+#include "XGLVkDescriptor.h"
 
 const char* REQUIRED_DEVICE_LAYER_NAMES[] = {
 };
 const char* REQUIRED_DEVICE_EXTENSION_NAMES[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_MAINTENANCE_1_EXTENSION_NAME,
-    VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 };
 const uint32_t REQUIRED_DEVICE_LAYER_NAME_COUNT = lenof(REQUIRED_DEVICE_LAYER_NAMES);
 const uint32_t REQUIRED_DEVICE_EXTENSION_NAME_COUNT = lenof(REQUIRED_DEVICE_EXTENSION_NAMES);
 
 XGLVkDevice *
-XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator) {
+XGLVkDevice_new(const XGLVkPhyDevice *physicalDevice, const XGLVkSurface *surface, const Allocator *allocator) {
   // select queue family
   uint32_t queueFamilyIndices[TOTAL_QUEUE_TYPE_COUNT] = {};
   uint32_t queueFamilyCount = Array_length(physicalDevice->queueFamilies);
@@ -117,8 +116,8 @@ XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *s
       .flags = 0,
       .queueCreateInfoCount = infoCount,
       .pQueueCreateInfos = queueCreateInfos,
-      .enabledLayerCount = lenof(REQUIRED_DEVICE_LAYER_NAMES),
-      .ppEnabledLayerNames = REQUIRED_DEVICE_LAYER_NAMES,
+      .enabledLayerCount = 0,
+      .ppEnabledLayerNames = nullptr,
       .enabledExtensionCount = lenof(REQUIRED_DEVICE_EXTENSION_NAMES),
       .ppEnabledExtensionNames = REQUIRED_DEVICE_EXTENSION_NAMES,
       .pEnabledFeatures = &physicalDevice->features,
@@ -164,17 +163,20 @@ XGLVkDevice_new(const XGLVkPhysicalDevice *physicalDevice, const XGLVkSurface *s
   device->queues = Array_new(sizeof(XGLVkQueue), -1, allocator);
   Array_append(device->queues, queues, TOTAL_QUEUE_TYPE_COUNT);
   rt_message("Logical device created");
+
+  device->cmdPool = XGLVkCommandPool_new(device, device->allocator);
+  device->descPool = XGLVkDescriptorPool_new(device, device->allocator);
+  device->transCmd = *XGLVkCommandPool_newCommand(device->cmdPool, 1);
+
   return device;
 }
 
 void XGLVkDevice_destroy(XGLVkDevice *device) {
-  if (device->descriptorPools) {
-    const uint32_t poolCount = Array_length(device->descriptorPools);
-    const VkDescriptorPool *pools = Array_first_real(device->descriptorPools);
-    for (uint32_t i = 0; i < poolCount; i++) {
-      vkDestroyDescriptorPool(device->handle, pools[i], nullptr);
-    }
-    releasePrimeArray(device->descriptorPools);
+  if (device->cmdPool) {
+    XGLVkCommandPool_destroy(device->cmdPool);
+  }
+  if (device->descPool) {
+    XGLVkDescriptorPool_destroy(device->descPool);
   }
   if (device->queues) {
     releasePrimeArray(device->queues);
@@ -187,7 +189,7 @@ void XGLVkDevice_destroy(XGLVkDevice *device) {
 
 VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwapchainKHR *swapchains,
                             const XGLVkRecordInfo *renderInfo) {
-  VkSubmitInfo submitInfo = {
+  const VkSubmitInfo submitInfo = {
       .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
       .pNext = nullptr,
       .waitSemaphoreCount = renderInfo->presentSemCount,
@@ -198,7 +200,7 @@ VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwap
       .signalSemaphoreCount = renderInfo->submitSemCount,
       .pSignalSemaphores = renderInfo->submitSemaphores,
   };
-  XGLVkQueue *graphicsQueue = Array_real_addr(device->queues, GRAPHICS_QUEUE_INDEX);
+  const XGLVkQueue *graphicsQueue = Array_real_addr(device->queues, GRAPHICS_QUEUE_INDEX);
   VkResult result = vkQueueSubmit(graphicsQueue->queue, 1, &submitInfo, renderInfo->waitFence);
   if (result != VK_SUCCESS) {
     rt_error("Failed to submit render command to queue");
@@ -223,65 +225,8 @@ VkResult XGLVkDevice_render(XGLVkDevice *device, VkCommandBuffer command, VkSwap
   return result;
 }
 
-XGLVkQueue *XGLVkDevice_getQueue(XGLVkDevice *device, uint32_t index) {
+XGLVkQueue *XGLVkDevice_getQueue(const XGLVkDevice *device, uint32_t index) {
   return Array_real_addr(device->queues, index);
-}
-
-VkResult XGLVkDevice_cmdCopyBufferData(XGLVkDevice *device, XGLVkCommandPool *commandPool, const XGLVkBufferCopyInfo *bufferCopyInfo) {
-  XGLVkBufferInfo stagingBufferInfo = {
-      .flags = 0, .size = 0, .pQueueFamilyIndices = nullptr, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE, .memoryOffset = 0, .queueFamilyIndexCount = 0,
-  };
-  for (uint32_t i = 0; i < bufferCopyInfo->count; i++) {
-    stagingBufferInfo.size = max(stagingBufferInfo.size, bufferCopyInfo->sizes[i]);
-  }
-  XGLVkDeviceBufferGroup *stagingBufferGroup = XGLVkDeviceBufferGroup_new(
-      device, 1, &stagingBufferInfo,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      device->allocator);
-  VkBuffer stagingBuffer = stagingBufferGroup->buffers[0];
-  VkCommandBuffer transferCommand = *XGLVkCommandPool_newCommand(commandPool, 1);
-  VkCommandBufferBeginInfo commandBufferBeginInfo = {
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .pNext = nullptr, .pInheritanceInfo = nullptr,
-      .flags = 0,
-  };
-  VkResult result = VK_SUCCESS;
-  for (uint32_t i = 0; i < bufferCopyInfo->count; i++) {
-    XGLVkDeviceMemory_copyData(stagingBufferGroup, 0, bufferCopyInfo->sizes[i], bufferCopyInfo->datas[i]);
-    result = vkBeginCommandBuffer(transferCommand, &commandBufferBeginInfo);
-    if (result != VK_SUCCESS) {
-      rt_error("Failed to begin transfer command");
-      break;
-    }
-    VkBufferCopy copyInfo = { .size = bufferCopyInfo->sizes[i], .dstOffset = bufferCopyInfo->dstOffsets[i], .srcOffset = 0 };
-    vkCmdCopyBuffer(transferCommand, stagingBuffer, bufferCopyInfo->dstBuffers[i], 1, &copyInfo);
-    result = vkEndCommandBuffer(transferCommand);
-    if (result != VK_SUCCESS) {
-      rt_error("Failed to end transfer command");
-      break;
-    }
-    VkSubmitInfo submitInfo = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &transferCommand,
-    };
-    XGLVkQueue *queue = XGLVkDevice_getQueue(device, TRANSFER_QUEUE_INDEX);
-    result = vkQueueSubmit(queue->queue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (result != VK_SUCCESS) {
-      rt_error("Failed to submit command to transfer queue");
-      break;
-    }
-    result = vkDeviceWaitIdle(device->handle);
-    if (result != VK_SUCCESS) {
-      rt_error("Device not idled");
-      break;
-    }
-  }
-  vkFreeCommandBuffers(device->handle, commandPool->handle, 1, &transferCommand);
-  XGLVkDeviceBufferGroup_destroy(stagingBufferGroup);
-  return result;
 }
 
 const VkDescriptorPool *XGLVkDevice_allocDescriptorPool(XGLVkDevice *device, uint32_t maxSetCount,
@@ -296,9 +241,5 @@ const VkDescriptorPool *XGLVkDevice_allocDescriptorPool(XGLVkDevice *device, uin
     rt_error("Failed to create descriptor pool");
     return nullptr;
   }
-  if (!device->descriptorPools) {
-    device->descriptorPools = Array_new(sizeof(VkDescriptorPool), -1, device->allocator);
-  }
-  Array_append(device->descriptorPools, &descriptorPool, 1);
-  return Array_last_real(device->descriptorPools);
+  return nullptr;
 }

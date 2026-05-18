@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: XGLVkInstance.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -223,10 +223,10 @@ void XGLVkInstance_enumeratePhysicalDevices(XGLVkInstance *instance) {
   vkEnumeratePhysicalDevices(instance->handle, &deviceCount, devices);
 
   if (!instance->devices) {
-    instance->devices = Array_new(sizeof(XGLVkPhysicalDevice), -1, instance->allocator);
+    instance->devices = Array_new(sizeof(XGLVkPhyDevice), -1, instance->allocator);
   }
   Array_resize(instance->devices, deviceCount, nullptr);
-  XGLVkPhysicalDevice *xglDevices = Array_first_real(instance->devices);
+  XGLVkPhyDevice *xglDevices = Array_first_real(instance->devices);
   for (uint32_t i = 0; i < deviceCount; i ++) {
     xglDevices[i].handle = devices[i];
     xglDevices[i].allocator = instance->allocator;
@@ -239,9 +239,9 @@ void XGLVkInstance_enumeratePhysicalDevices(XGLVkInstance *instance) {
   instance->allocator->free(devices);
 }
 
-const XGLVkPhysicalDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance) {
+const XGLVkPhyDevice *XGLVkInstance_pickPhysicalDevice(XGLWMWindow *window, const XGLVkInstance *instance) {
   uint32_t deviceCount = Array_length(instance->devices);
-  XGLVkPhysicalDevice *const devices = Array_first_real(instance->devices);
+  XGLVkPhyDevice *const devices = Array_first_real(instance->devices);
   for (uint32_t i = 0; i < deviceCount; i ++) {
     rt_message("Detect physical device '%s'", devices[i].properties.deviceName);
     if (!XGLVkPhysicalDevice_suitable(&devices[i])) {

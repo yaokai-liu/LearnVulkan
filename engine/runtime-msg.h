@@ -18,19 +18,21 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
- * Filename: minmax.h
+ * Module Name: xGLVulkan
+ * Filename: runtime-msg.h
  * Creator: Yaokai Liu
- * Create Date: 2025-04-30
+ * Create Date: 2025-04-29
  * Copyright (c) 2025 Yaokai Liu. All rights reserved.
  **/
 
-#ifndef MINMAX_H
-#define MINMAX_H
+#ifndef RUNTIME_MSG_H
+#define RUNTIME_MSG_H
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define minmax(a, b, c) min(max(a, min(b, c)), max(b, c))
-#define maxmin(a, b, c) max(min(a, max(b, c)), min(b, c))
+#include <stdio.h>
 
-#endif //MINMAX_H
+#define rt_error(fmt, ...)   fprintf(stderr, "[ERROR] " fmt "\n", ##__VA_ARGS__)
+#define rt_message(fmt, ...) fprintf(stdout, "[INFO] " fmt "\n", ##__VA_ARGS__)
+#define rt_warning(fmt, ...) fprintf(stderr, "[WARNING] " fmt "\n", ##__VA_ARGS__)
+#define rt_debug(fmt, ...)   fprintf(stdout, "[DEBUG] " fmt "\n", ##__VA_ARGS__)
+
+#endif //RUNTIME_MSG_H

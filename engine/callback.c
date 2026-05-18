@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: callback.c
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -39,10 +39,8 @@ void framebuffer_resize_callback(GLFWwindow* window, int width, int height) {
   }
 }
 
-
 const char *MESSAGE_TYPES[] = {
     "General", "Validation", "Performance", "DeviceAddressBinding"
-
 };
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

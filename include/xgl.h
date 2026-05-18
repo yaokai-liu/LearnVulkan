@@ -18,7 +18,7 @@
  *
  *
  * Project Name: xGL
- * Module Name: src
+ * Module Name: xGLVulkan
  * Filename: xgl.h
  * Creator: Yaokai Liu
  * Create Date: 2025-04-30
@@ -28,17 +28,8 @@
 #ifndef XGL_H
 #define XGL_H
 
-#include "XGLVulkan.h"
-#include "XGLVkInstance.h"
-#include "XGLVkPhysicalDevice.h"
-#include "XGLVkSurface.h"
-#include "XGLVkDevice.h"
-#include "XGLVkPipeline.h"
-#include "XGLVkSwapchain.h"
-#include "XGLVkCommandPool.h"
-#include "XGLVkSync.h"
-#include "XGLVkDeviceBuffer.h"
 #include "xglm.h"
+#include "xGLVulkan/XGLVulkan.h"
 
 #ifdef XGL_MATH_DEBUG_PRINT
 #define printFMat4(M) \
@@ -72,16 +63,36 @@
 #endif
 
 typedef FVec4 XGLColor;
+typedef FVec4 XGLCoord;
+typedef FVec2 XGLTexCoord;
 
-typedef struct Vertex {
-  float coord[4];
-  float color[4];
-} Vertex;
+typedef struct XGLVertex {
+  XGLCoord coord;
+  XGLColor color;
+  XGLTexCoord uvCoord;
+} XGLVertex;
 
-typedef struct MVP {
+typedef struct XGLViewProjection {
+  FMat4 view [[gnu::aligned(16)]];
+  FMat4 proj [[gnu::aligned(16)]];
+} XGLViewProjection;
+
+typedef struct XGLModelViewProjection {
   FMat4 model [[gnu::aligned(16)]];
   FMat4 view [[gnu::aligned(16)]];
   FMat4 proj [[gnu::aligned(16)]];
-} MVP;
+} XGLModelViewProjection;
+
+typedef uint32_t XGLRgba;
+
+typedef struct Vertex2D {
+  FVec2       coord;
+  XGLRgba     color;
+} Vertex2D;
+
+typedef struct PixelVertex2D {
+  IVec2      coord;
+  XGLRgba color;
+} PixelVertex2D;
 
 #endif //XGL_H
